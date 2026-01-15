@@ -116,6 +116,14 @@ final class SettingsController
 
         $migrated = $syncService->migrateAll($postType, 100);
 
+        // Clean up orphaned records (exist in shadow but not in posts)
+        $tableName = $schema->getTableName($wpdb->prefix);
+        $wpdb->query("
+            DELETE s FROM {$tableName} s
+            LEFT JOIN {$wpdb->posts} p ON s.post_id = p.ID
+            WHERE p.ID IS NULL
+        ");
+
         return new WP_REST_Response([
             'success' => true,
             'migrated' => $migrated,

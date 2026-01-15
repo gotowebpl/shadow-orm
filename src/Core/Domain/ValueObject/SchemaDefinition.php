@@ -19,7 +19,9 @@ final readonly class SchemaDefinition
 
     public function getTableName(string $prefix = 'wp_'): string
     {
-        return $prefix . 'shadow_' . $this->postType;
+        // Sanitize post type name for SQL table (replace hyphens with underscores)
+        $sanitizedType = str_replace('-', '_', $this->postType);
+        return $prefix . 'shadow_' . $sanitizedType;
     }
 
     public function getLookupTableName(string $prefix = 'wp_'): string
