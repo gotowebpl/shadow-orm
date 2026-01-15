@@ -1,7 +1,7 @@
 === ShadowORM MySQL Accelerator ===
-Contributors: gotowebpl
+Contributors: gotoweb
 Donate link: https://gotoweb.pl
-Tags: performance, database, woocommerce, optimization, mysql, json, meta, orm
+Tags: performance, database, woocommerce, optimization, mysql
 Requires at least: 6.0
 Tested up to: 6.7
 Stable tag: 1.0.0
