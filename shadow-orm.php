@@ -18,6 +18,7 @@ declare(strict_types=1);
 namespace ShadowORM;
 
 use ShadowORM\Core\Infrastructure\Installer\DropInInstaller;
+use ShadowORM\Core\Infrastructure\Updater\GitHubUpdater;
 use ShadowORM\Core\Application\Service\AutoDiscoveryService;
 use ShadowORM\Core\Presentation\Hook\ReadInterceptor;
 use ShadowORM\Core\Presentation\Hook\WriteInterceptor;
@@ -46,6 +47,7 @@ if (!defined('SHADOW_ORM_DB_LOADED')) {
 final class ShadowORM
 {
     private static ?self $instance = null;
+    private ?GitHubUpdater $updater = null;
 
     private function __construct()
     {
@@ -54,6 +56,7 @@ final class ShadowORM
         $this->registerRestApi();
         $this->registerAdmin();
         $this->registerCli();
+        $this->registerUpdater();
     }
 
     public static function getInstance(): self
@@ -116,6 +119,26 @@ final class ShadowORM
         }
 
         AdminPage::register();
+    }
+
+    /**
+     * Registers the GitHub updater for automatic plugin updates.
+     *
+     * Updates are fetched from GitHub releases, allowing distribution
+     * outside the WordPress.org plugin repository.
+     */
+    private function registerUpdater(): void
+    {
+        $this->updater = new GitHubUpdater(PLUGIN_FILE);
+        $this->updater->register();
+    }
+
+    /**
+     * Returns the updater instance for external access.
+     */
+    public function getUpdater(): ?GitHubUpdater
+    {
+        return $this->updater;
     }
 }
 

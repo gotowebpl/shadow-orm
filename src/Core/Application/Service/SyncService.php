@@ -95,6 +95,14 @@ final class SyncService
             $offset += $batchSize;
         }
 
+        /**
+         * Fires after sync/migration is completed for a post type.
+         * 
+         * @param string $postType The post type that was synced
+         * @param int $migrated Number of posts migrated
+         */
+        do_action('shadow_orm_sync_completed', $postType, $migrated);
+
         return $migrated;
     }
 
