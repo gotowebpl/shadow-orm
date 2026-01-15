@@ -113,6 +113,26 @@
       api.saveSettings({ post_types: updatePostTypes() });
     });
 
+    $("#shadow-orm-save-settings").on("click", function () {
+      const $btn = $(this);
+      const $status = $("#shadow-orm-save-status");
+      
+      $btn.prop("disabled", true);
+      $status.text("Zapisywanie...");
+      
+      api.saveSettings({
+        enabled: $("#shadow-orm-enabled").is(":checked"),
+        post_types: updatePostTypes()
+      }).done(function () {
+        $status.text("Zapisano!").css("color", "green");
+        setTimeout(function () { $status.text(""); }, 2000);
+      }).fail(function () {
+        $status.text("Błąd zapisu").css("color", "red");
+      }).always(function () {
+        $btn.prop("disabled", false);
+      });
+    });
+
     $(document).on("click", ".shadow-orm-sync", function () {
       const $btn = $(this);
       const postType = $btn.data("post-type");

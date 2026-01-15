@@ -32,7 +32,7 @@ final class AdminPage
             return;
         }
 
-        $pluginUrl = plugin_dir_url(dirname(__DIR__, 3) . '/shadow-orm.php');
+        $pluginUrl = plugin_dir_url(dirname(__DIR__, 4) . '/shadow-orm.php');
 
         wp_enqueue_style(
             'shadow-orm-admin',

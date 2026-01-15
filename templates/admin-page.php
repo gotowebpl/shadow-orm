@@ -44,6 +44,13 @@ if (!defined('ABSPATH')) {
                     </td>
                 </tr>
             </table>
+            
+            <p class="submit">
+                <button type="button" id="shadow-orm-save-settings" class="button button-primary">
+                    <?php esc_html_e('Zapisz zmiany', 'shadow-orm'); ?>
+                </button>
+                <span id="shadow-orm-save-status" style="margin-left: 10px;"></span>
+            </p>
         </div>
 
         <div class="shadow-orm-card shadow-orm-status">
