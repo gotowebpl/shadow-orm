@@ -29,16 +29,52 @@ jobs:
         run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Install dependencies
-        run: composer install --no-dev --optimize-autoloader --no-interaction
+        run: composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
 
       - name: Remove dev files
         run: |
+          # Remove test files
           rm -rf tests/
+          rm -rf .phpunit.cache/
+
+          # Remove CI/CD config
           rm -rf .github/
+
+          # Remove development config files
           rm -f phpunit.xml.dist
           rm -f phpstan.neon
           rm -f .gitignore
+          rm -f .gitattributes
           rm -f composer.lock
+          rm -f .editorconfig
+          rm -f .php-cs-fixer.php
+          rm -f .php-cs-fixer.cache
+
+          # Remove stubs (used only during installation)
+          rm -rf stubs/
+
+          # Remove vendor dev artifacts
+          rm -rf vendor/bin/
+          rm -rf vendor/phpunit/
+          rm -rf vendor/phpstan/
+          rm -rf vendor/mockery/
+          rm -rf vendor/brain/
+          rm -rf vendor/antecedent/
+          rm -rf vendor/fakerphp/
+          rm -rf vendor/squizlabs/
+          rm -rf vendor/hamcrest/
+          rm -rf vendor/phar-io/
+          rm -rf vendor/sebastian/
+          rm -rf vendor/theseer/
+
+          # Remove vendor test directories
+          find vendor -type d -name "tests" -exec rm -rf {} + 2>/dev/null || true
+          find vendor -type d -name "test" -exec rm -rf {} + 2>/dev/null || true
+          find vendor -type d -name "Tests" -exec rm -rf {} + 2>/dev/null || true
+          find vendor -type d -name "Test" -exec rm -rf {} + 2>/dev/null || true
+
+          # Clean up empty directories
+          find vendor -type d -empty -delete 2>/dev/null || true
 
       - name: Create plugin archive
         run: |
@@ -47,7 +83,8 @@ jobs:
           zip -r shadow-orm/build/shadow-orm-${{ steps.version.outputs.VERSION }}.zip shadow-orm \
             -x "shadow-orm/build/*" \
             -x "shadow-orm/.git/*" \
-            -x "shadow-orm/vendor/bin/*"
+            -x "*.DS_Store" \
+            -x "*.log"
 
       - name: Extract changelog
         id: changelog
