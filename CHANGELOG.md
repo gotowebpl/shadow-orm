@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2026-01-15
+
+### Performance
+
+- **ReadInterceptor optimization** - eliminate 10% overhead on single meta reads
+  - Cache `post_type` lookups in static array (avoid repeated `get_post_type()` calls)
+  - Add `$skipCache` for unsupported posts (fast early-return)
+  - Pre-cache post types during preload operations
+- **SupportedTypes optimization** - O(1) lookup instead of O(n)
+  - Replace `in_array()` with `isset()` using hash map structure
+- **RuntimeCache with wp*cache*\* support** - persistent cache across requests
+  - Auto-detect external object cache (Redis/Memcached) via `wp_using_ext_object_cache()`
+  - Use `wp_cache_set/get` when available for data persistence between requests
+  - In-memory cache still used as first-level cache for current request
+
 ## [1.2.2] - 2026-01-15
 
 ### Fixed

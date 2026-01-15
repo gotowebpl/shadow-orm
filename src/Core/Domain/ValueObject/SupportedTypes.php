@@ -10,34 +10,34 @@ if (!defined('ABSPATH')) {
 
 final class SupportedTypes
 {
-    /** @var array<string> */
-    private static array $types = ['post', 'page', 'product', 'product_variation'];
+    /** @var array<string, true> Hash map for O(1) lookup */
+    private static array $types = [
+        'post' => true,
+        'page' => true,
+        'product' => true,
+        'product_variation' => true,
+    ];
 
     /**
      * @return array<string>
      */
     public static function get(): array
     {
-        return self::$types;
+        return array_keys(self::$types);
     }
 
     public static function add(string $type): void
     {
-        if (!in_array($type, self::$types, true)) {
-            self::$types[] = $type;
-        }
+        self::$types[$type] = true;
     }
 
     public static function remove(string $type): void
     {
-        self::$types = array_values(array_filter(
-            self::$types,
-            static fn(string $t): bool => $t !== $type
-        ));
+        unset(self::$types[$type]);
     }
 
     public static function isSupported(string $type): bool
     {
-        return in_array($type, self::$types, true);
+        return isset(self::$types[$type]);
     }
 }

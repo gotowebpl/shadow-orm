@@ -20,6 +20,12 @@ final class ReadInterceptor
     private static ?RuntimeCache $cache = null;
     private static ?DriverFactory $factory = null;
     private static array $repositories = [];
+    
+    /** @var array<int, string|false> Post type cache to avoid repeated get_post_type() calls */
+    private static array $postTypeCache = [];
+    
+    /** @var array<int, bool> Cache of posts that should be skipped (unsupported or no table) */
+    private static array $skipCache = [];
 
     public static function intercept(
         mixed $value,
@@ -28,13 +34,21 @@ final class ReadInterceptor
         bool $single,
         string $metaType
     ): mixed {
+        // Fast path: not post meta or already has value
         if ($metaType !== 'post' || $value !== null) {
             return $value;
         }
 
-        $postType = get_post_type($objectId);
+        // Fast path: already know to skip this post
+        if (isset(self::$skipCache[$objectId])) {
+            return $value;
+        }
+
+        // Get post type with caching
+        $postType = self::getPostType($objectId);
 
         if ($postType === false || !SupportedTypes::isSupported($postType)) {
+            self::$skipCache[$objectId] = true;
             return $value;
         }
 
@@ -78,8 +92,11 @@ final class ReadInterceptor
         $toLoad = [];
 
         foreach ($postIds as $postId) {
-            if (!$cache->has($postId) && !$cache->isMarkedNotFound($postId)) {
-                $toLoad[] = (int) $postId;
+            $id = (int) $postId;
+            if (!$cache->has($id) && !$cache->isMarkedNotFound($id) && !isset(self::$skipCache[$id])) {
+                $toLoad[] = $id;
+                // Pre-cache post type
+                self::$postTypeCache[$id] = $postType;
             }
         }
 
@@ -89,6 +106,10 @@ final class ReadInterceptor
 
         $repository = self::getRepository($postType);
         if ($repository === null) {
+            // Mark all as skip - no table exists
+            foreach ($toLoad as $postId) {
+                self::$skipCache[$postId] = true;
+            }
             return;
         }
 
@@ -105,11 +126,35 @@ final class ReadInterceptor
         }
     }
 
+    public static function clearCaches(): void
+    {
+        self::$postTypeCache = [];
+        self::$skipCache = [];
+        self::$cache?->clear();
+    }
+
+    private static function getPostType(int $postId): string|false
+    {
+        if (isset(self::$postTypeCache[$postId])) {
+            return self::$postTypeCache[$postId];
+        }
+
+        $postType = get_post_type($postId);
+        self::$postTypeCache[$postId] = $postType;
+
+        return $postType;
+    }
+
     private static function loadEntity(int $postId, string $postType): ?ShadowEntity
     {
         $repository = self::getRepository($postType);
 
-        return $repository?->find($postId);
+        if ($repository === null) {
+            self::$skipCache[$postId] = true;
+            return null;
+        }
+
+        return $repository->find($postId);
     }
 
     private static function getRepository(string $postType): ?ShadowRepository
@@ -124,9 +169,11 @@ final class ReadInterceptor
         $schema = new SchemaDefinition($postType);
         $tableName = $schema->getTableName($wpdb->prefix);
 
+        // phpcs:ignore WordPress.DB.DirectDatabaseQuery
         $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $tableName));
 
         if (!$exists) {
+            self::$repositories[$postType] = null;
             return null;
         }
 
