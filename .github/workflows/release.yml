@@ -50,8 +50,7 @@ jobs:
           rm -f .php-cs-fixer.php
           rm -f .php-cs-fixer.cache
 
-          # Remove stubs (used only during installation)
-          rm -rf stubs/
+          # NOTE: Do NOT remove stubs/ - they are required for plugin installation!
 
           # Remove vendor dev artifacts
           rm -rf vendor/bin/

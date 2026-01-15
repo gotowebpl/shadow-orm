@@ -162,6 +162,14 @@ final class DropInInstaller
 
     private static function getPluginDir(): string
     {
+        // Use plugin_dir_path if available, fallback to dirname
+        if (function_exists('plugin_dir_path')) {
+            $mainFile = dirname(__DIR__, 4) . '/shadow-orm.php';
+            if (file_exists($mainFile)) {
+                return dirname($mainFile);
+            }
+        }
+
         return dirname(__DIR__, 4);
     }
 }
