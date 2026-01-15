@@ -63,14 +63,33 @@ ShadowORM stores all metadata for a post in a single JSON column:
 
 = Pro Version =
 
-The Pro version adds:
+The Pro version adds advanced caching and optimization features:
 
-* WooCommerce Variations support
-* ACF Repeater/Flexible Content
-* WPML/Polylang integration
-* Advanced dashboard
-* Visual index builder
-* Priority support
+**Caching System:**
+* Object Cache - Redis/Memcached integration with Symfony fallback
+* Page Cache - Full page caching with tag-based invalidation
+* Query Cache - WP_Query results caching for archives and widgets
+* Automatic purge when stock changes, order completes, post updates
+
+**WooCommerce Enhancements:**
+* Product Variations support
+* Stock/Price exclusion from cache (always fresh)
+* WooCommerce Optimizer for bulk product loading
+
+**Integrations:**
+* ACF Repeater/Flexible Content support
+* WPML/Polylang multilingual support
+
+**Admin Features:**
+* Virtual Mode - full shadow table mode
+* Advanced Dashboard with statistics
+* Quick purge options
+* Transients management
+* Autoload optimization
+
+**Support:**
+* Priority email support
+* Regular updates
 
 [Get ShadowORM Pro](https://gotowebplugins.com/shadow-orm-pro)
 

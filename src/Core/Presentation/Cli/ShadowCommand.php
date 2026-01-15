@@ -10,6 +10,8 @@ use ShadowORM\Core\Application\Cache\RuntimeCache;
 use ShadowORM\Core\Infrastructure\Driver\DriverFactory;
 use ShadowORM\Core\Infrastructure\Persistence\ShadowTableManager;
 use ShadowORM\Core\Infrastructure\Persistence\ShadowRepository;
+use ShadowORM\Core\Infrastructure\Persistence\WpPostMetaReader;
+use ShadowORM\Core\Infrastructure\Index\IndexManager;
 use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
 use WP_CLI;
 
@@ -51,8 +53,9 @@ final class ShadowCommand
 
         $factory = new DriverFactory($wpdb);
         $tableManager = new ShadowTableManager($wpdb, $factory);
+        $indexManager = new IndexManager($wpdb, $wpdb->prefix);
 
-        $headers = ['Post Type', 'Total', 'Migrated', 'Size', 'Driver'];
+        $headers = ['Post Type', 'Total', 'Migrated', 'Size', 'Indexes', 'Driver'];
         $rows = [];
 
         foreach ($this->getAllConfiguredTypes() as $postType) {
@@ -64,14 +67,85 @@ final class ShadowCommand
             );
 
             $stats = $tableManager->getTableStats($postType);
+            $hasIndexes = $stats['exists'] && $indexManager->hasIndexes($postType);
 
             $rows[] = [
                 'Post Type' => $postType,
                 'Total' => $total,
                 'Migrated' => $stats['exists'] ? $stats['count'] : 0,
                 'Size' => $stats['exists'] ? $this->formatBytes($stats['size']) : '-',
+                'Indexes' => $hasIndexes ? 'Yes' : 'No',
                 'Driver' => $stats['exists'] ? $factory->create()->getDriverName() : '-',
             ];
+        }
+
+        WP_CLI\Utils\format_items('table', $rows, $headers);
+    }
+
+    /**
+     * @subcommand index
+     */
+    public function index(array $args, array $assoc): void
+    {
+        global $wpdb;
+
+        $action = $args[0] ?? 'status';
+        $type = $assoc['type'] ?? null;
+        $all = isset($assoc['all']);
+
+        $indexManager = new IndexManager($wpdb, $wpdb->prefix);
+        $types = $all ? $this->getAllConfiguredTypes() : ($type ? [$type] : $this->getAllConfiguredTypes());
+
+        match ($action) {
+            'create' => $this->indexCreate($indexManager, $types),
+            'drop' => $this->indexDrop($indexManager, $types),
+            'status' => $this->indexStatus($indexManager, $types),
+            default => WP_CLI::error("Unknown action: {$action}. Use: create, drop, status"),
+        };
+    }
+
+    private function indexCreate(IndexManager $manager, array $types): void
+    {
+        foreach ($types as $postType) {
+            $count = $manager->createIndexes($postType);
+            WP_CLI::log("Created {$count} indexes for '{$postType}'");
+        }
+
+        WP_CLI::success('Indexes created');
+    }
+
+    private function indexDrop(IndexManager $manager, array $types): void
+    {
+        foreach ($types as $postType) {
+            $count = $manager->dropIndexes($postType);
+            WP_CLI::log("Dropped {$count} indexes for '{$postType}'");
+        }
+
+        WP_CLI::success('Indexes dropped');
+    }
+
+    private function indexStatus(IndexManager $manager, array $types): void
+    {
+        $headers = ['Post Type', 'Meta Key', 'Column', 'Exists', 'Indexed'];
+        $rows = [];
+
+        foreach ($types as $postType) {
+            $status = $manager->getIndexStatus($postType);
+
+            foreach ($status as $metaKey => $info) {
+                $rows[] = [
+                    'Post Type' => $postType,
+                    'Meta Key' => $metaKey,
+                    'Column' => $info['column'],
+                    'Exists' => $info['exists'] ? 'Yes' : 'No',
+                    'Indexed' => $info['indexed'] ? 'Yes' : 'No',
+                ];
+            }
+        }
+
+        if (empty($rows)) {
+            WP_CLI::log('No index configuration found for these post types.');
+            return;
         }
 
         WP_CLI\Utils\format_items('table', $rows, $headers);
@@ -165,7 +239,8 @@ final class ShadowCommand
 
         $repository = new ShadowRepository($driver, $schema, $wpdb->prefix);
         $cache = new RuntimeCache();
-        $syncService = new SyncService($repository, $cache);
+        $metaReader = new WpPostMetaReader($wpdb);
+        $syncService = new SyncService($repository, $cache, $metaReader);
 
         $progress = WP_CLI\Utils\make_progress_bar("Migrating {$postType}", $total);
 
@@ -180,7 +255,7 @@ final class ShadowCommand
 
     private function getAllConfiguredTypes(): array
     {
-        return ['post', 'page', 'product'];
+        return ['post', 'page', 'product', 'product_variation'];
     }
 
     private function formatBytes(int $bytes): string
@@ -196,3 +271,4 @@ final class ShadowCommand
         return round($bytes, 2) . ' ' . $units[$i];
     }
 }
+

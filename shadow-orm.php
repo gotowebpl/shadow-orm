@@ -22,6 +22,7 @@ use ShadowORM\Core\Application\Service\AutoDiscoveryService;
 use ShadowORM\Core\Presentation\Hook\ReadInterceptor;
 use ShadowORM\Core\Presentation\Hook\WriteInterceptor;
 use ShadowORM\Core\Presentation\Hook\QueryInterceptor;
+use ShadowORM\Core\Presentation\Hook\PostQueryPreloader;
 use ShadowORM\Core\Presentation\Admin\AdminPage;
 use ShadowORM\Core\Presentation\Admin\SettingsController;
 
@@ -29,7 +30,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const VERSION = '1.1.0';
+const VERSION = '1.2.0';
 const PLUGIN_FILE = __FILE__;
 const PLUGIN_DIR = __DIR__;
 const MIN_MYSQL_VERSION = '5.7.0';
@@ -85,6 +86,7 @@ final class ShadowORM
         add_action('deleted_post_meta', [WriteInterceptor::class, 'onMetaDeleted'], 10, 4);
         add_action('deleted_post', [WriteInterceptor::class, 'onDeletePost'], 10, 2);
         add_filter('posts_clauses', [QueryInterceptor::class, 'intercept'], 10, 2);
+        add_filter('the_posts', [PostQueryPreloader::class, 'preload'], 10, 2);
     }
 
     private function registerCli(): void

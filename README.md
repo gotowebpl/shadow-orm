@@ -70,19 +70,34 @@ Navigate to **Settings → ShadowORM** to:
 
 ## Free vs Pro
 
-| Feature                    | Free | Pro |
-| -------------------------- | :--: | :-: |
-| MySQL 8.0 Native JSON      |  ✅  | ✅  |
-| MySQL 5.7 Lookup Tables    |  ✅  | ✅  |
-| WP-CLI Commands            |  ✅  | ✅  |
-| Admin Panel                |  ✅  | ✅  |
-| RAM Cache                  |  ✅  | ✅  |
-| **WooCommerce Variations** |  ❌  | ✅  |
-| **ACF Repeater/Flexible**  |  ❌  | ✅  |
-| **WPML/Polylang Support**  |  ❌  | ✅  |
-| **Advanced Dashboard**     |  ❌  | ✅  |
-| **Visual Index Builder**   |  ❌  | ✅  |
-| **Priority Support**       |  ❌  | ✅  |
+| Feature                        | Free | Pro |
+| ------------------------------ | :--: | :-: |
+| **Database Optimization**      |      |     |
+| MySQL 8.0 Native JSON          |  ✅  | ✅  |
+| MySQL 5.7 Lookup Tables        |  ✅  | ✅  |
+| WP-CLI Commands                |  ✅  | ✅  |
+| Admin Panel                    |  ✅  | ✅  |
+| RAM Cache                      |  ✅  | ✅  |
+| **Caching System**             |      |     |
+| Object Cache (Redis/Memcached) |  ❌  | ✅  |
+| Page Cache (Full HTML)         |  ❌  | ✅  |
+| Query Cache (WP_Query results) |  ❌  | ✅  |
+| Tag-based auto-invalidation    |  ❌  | ✅  |
+| Symfony Filesystem fallback    |  ❌  | ✅  |
+| **WooCommerce**                |      |     |
+| Simple Products                |  ✅  | ✅  |
+| Product Variations             |  ❌  | ✅  |
+| Stock/Price cache exclusion    |  ❌  | ✅  |
+| WooCommerce Optimizer          |  ❌  | ✅  |
+| **Integrations**               |      |     |
+| ACF Repeater/Flexible          |  ❌  | ✅  |
+| WPML/Polylang Support          |  ❌  | ✅  |
+| **Admin Features**             |      |     |
+| Virtual Mode                   |  ❌  | ✅  |
+| Advanced Dashboard             |  ❌  | ✅  |
+| Transients Management          |  ❌  | ✅  |
+| Autoload Optimization          |  ❌  | ✅  |
+| Priority Support               |  ❌  | ✅  |
 
 **[Get ShadowORM Pro →](https://gotowebplugins.com/shadow-orm-pro)**
 
