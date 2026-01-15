@@ -51,6 +51,7 @@ final class ShadowORM
     {
         $this->checkRequirements();
         $this->registerHooks();
+        $this->registerRestApi();
         $this->registerAdmin();
         $this->registerCli();
     }
@@ -103,6 +104,11 @@ final class ShadowORM
         \WP_CLI::add_command('shadow', Core\Presentation\Cli\ShadowCommand::class);
     }
 
+    private function registerRestApi(): void
+    {
+        SettingsController::register();
+    }
+
     private function registerAdmin(): void
     {
         if (!is_admin()) {
@@ -110,7 +116,6 @@ final class ShadowORM
         }
 
         AdminPage::register();
-        SettingsController::register();
     }
 }
 
