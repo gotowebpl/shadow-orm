@@ -6,12 +6,11 @@ declare(strict_types=1);
  * Plugin Name: ShadowORM MySQL Accelerator
  * Plugin URI: https://github.com/shadow-orm/shadow-orm
  * Description: High-performance ORM layer for WordPress/WooCommerce with Shadow Tables
- * Version: 1.0.0
+ * Version: 1.1.0
  * Requires PHP: 8.1
  * Author: gotoweb.pl
  * Author URI: https://gotoweb.pl
  * License: GPLv2 or later
- * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: shadow-orm
  */
 
@@ -30,7 +29,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const VERSION = '1.0.0';
+const VERSION = '1.1.0';
 const PLUGIN_FILE = __FILE__;
 const PLUGIN_DIR = __DIR__;
 const MIN_MYSQL_VERSION = '5.7.0';
@@ -71,18 +70,11 @@ final class ShadowORM
         $version = $wpdb->db_version();
 
         if (version_compare($version, MIN_MYSQL_VERSION, '<')) {
-            add_action('admin_notices', static function () use ($version): void {
-                printf(
-                    '<div class="notice notice-error"><p>%s</p></div>',
-                    sprintf(
-                        __('ShadowORM requires MySQL %s or higher. Current version: %s', 'shadow-orm'),
-                        MIN_MYSQL_VERSION,
-                        $version
-                    )
-                );
-            });
-
-            return;
+            add_action('admin_notices', static fn() => printf(
+                '<div class="notice notice-error"><p>ShadowORM requires MySQL %s+. Current: %s</p></div>',
+                MIN_MYSQL_VERSION,
+                $version
+            ));
         }
     }
 
@@ -121,21 +113,12 @@ final class ShadowORM
         AdminPage::register();
     }
 
-    /**
-     * Registers the GitHub updater for automatic plugin updates.
-     *
-     * Updates are fetched from GitHub releases, allowing distribution
-     * outside the WordPress.org plugin repository.
-     */
     private function registerUpdater(): void
     {
         $this->updater = new GitHubUpdater(PLUGIN_FILE);
         $this->updater->register();
     }
 
-    /**
-     * Returns the updater instance for external access.
-     */
     public function getUpdater(): ?GitHubUpdater
     {
         return $this->updater;
@@ -143,3 +126,4 @@ final class ShadowORM
 }
 
 add_action('plugins_loaded', [ShadowORM::class, 'getInstance']);
+

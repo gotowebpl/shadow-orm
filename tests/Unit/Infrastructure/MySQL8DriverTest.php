@@ -162,6 +162,9 @@ final class MySQL8DriverTest extends TestCase
         $this->wpdb->shouldReceive('esc_like')
             ->andReturnUsing(fn($val) => $val);
 
+        $this->wpdb->shouldReceive('_real_escape')
+            ->andReturnUsing(fn($val) => addslashes((string) $val));
+
         $sqlMatched = false;
         $this->wpdb->shouldReceive('get_results')
             ->once()
@@ -181,7 +184,7 @@ final class MySQL8DriverTest extends TestCase
         return [
             'equals' => [
                 [['key' => 'status', 'value' => 'active', 'compare' => '=']],
-                "JSON_UNQUOTE",
+                "meta_data->>",
             ],
             'not_equals' => [
                 [['key' => 'status', 'value' => 'inactive', 'compare' => '!=']],

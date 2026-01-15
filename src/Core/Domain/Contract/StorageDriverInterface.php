@@ -26,6 +26,14 @@ interface StorageDriverInterface
 
     public function dropIndex(string $table, string $indexName): void;
 
+    /**
+     * @param array<int> $postIds
+     * @return array<int, ShadowEntity>
+     */
+    public function findMany(string $table, array $postIds): array;
+
+    public function exists(string $table, int $postId): bool;
+
     public function supportsNativeJson(): bool;
 
     public function getDriverName(): string;

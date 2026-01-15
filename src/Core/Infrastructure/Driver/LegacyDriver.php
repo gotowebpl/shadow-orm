@@ -168,6 +168,43 @@ final class LegacyDriver implements StorageDriverInterface
         return 'Legacy';
     }
 
+    public function findMany(string $table, array $postIds): array
+    {
+        if (empty($postIds)) {
+            return [];
+        }
+
+        $postIds = array_map('intval', $postIds);
+        $placeholders = implode(',', array_fill(0, count($postIds), '%d'));
+
+        $rows = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                "SELECT post_id, post_type, content, meta_data FROM {$table} WHERE post_id IN ({$placeholders})",
+                ...$postIds
+            ),
+            ARRAY_A
+        );
+
+        if (empty($rows)) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($rows as $row) {
+            $postId = (int) $row['post_id'];
+            $result[$postId] = $this->hydrateEntity($row);
+        }
+
+        return $result;
+    }
+
+    public function exists(string $table, int $postId): bool
+    {
+        return (bool) $this->wpdb->get_var(
+            $this->wpdb->prepare("SELECT 1 FROM {$table} WHERE post_id = %d LIMIT 1", $postId)
+        );
+    }
+
     private function syncLookupTable(string $table, ShadowEntity $entity): void
     {
         $lookupTable = $table . '_lookup';
@@ -201,13 +238,17 @@ final class LegacyDriver implements StorageDriverInterface
 
     private function hydrateEntity(array $row): ShadowEntity
     {
-        $metaData = json_decode($row['meta_data'] ?? '{}', true) ?: [];
+        try {
+            $metaData = json_decode($row['meta_data'] ?? '{}', true, 512, JSON_THROW_ON_ERROR);
+        } catch (\JsonException) {
+            $metaData = [];
+        }
 
         return new ShadowEntity(
             postId: (int) $row['post_id'],
             postType: (string) ($row['post_type'] ?? ''),
             content: (string) ($row['content'] ?? ''),
-            metaData: $metaData,
+            metaData: $metaData ?: [],
         );
     }
 }

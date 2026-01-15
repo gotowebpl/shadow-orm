@@ -5,13 +5,14 @@ declare(strict_types=1);
 namespace ShadowORM\Core\Presentation\Hook;
 
 use ShadowORM\Core\Application\Service\QueryService;
-use ShadowORM\Core\Infrastructure\Driver\DriverFactory;
 use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
+use ShadowORM\Core\Domain\ValueObject\SupportedTypes;
+use ShadowORM\Core\Infrastructure\Driver\DriverFactory;
 use WP_Query;
 
 final class QueryInterceptor
 {
-    private static array $supportedTypes = ['post', 'page', 'product'];
+    private static ?DriverFactory $factory = null;
 
     public static function intercept(array $clauses, WP_Query $query): array
     {
@@ -28,7 +29,7 @@ final class QueryInterceptor
 
         global $wpdb;
 
-        $factory = new DriverFactory($wpdb);
+        $factory = self::getFactory();
 
         try {
             $driver = $factory->create();
@@ -48,9 +49,7 @@ final class QueryInterceptor
             return false;
         }
 
-        $postType = self::getPostType($query);
-
-        return in_array($postType, self::$supportedTypes, true);
+        return SupportedTypes::isSupported(self::getPostType($query));
     }
 
     private static function getPostType(WP_Query $query): string
@@ -62,5 +61,15 @@ final class QueryInterceptor
         }
 
         return $postType ?: 'post';
+    }
+
+    private static function getFactory(): DriverFactory
+    {
+        if (self::$factory === null) {
+            global $wpdb;
+            self::$factory = new DriverFactory($wpdb);
+        }
+
+        return self::$factory;
     }
 }

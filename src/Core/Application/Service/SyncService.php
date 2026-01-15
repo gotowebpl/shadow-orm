@@ -4,16 +4,17 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Application\Service;
 
+use ShadowORM\Core\Application\Cache\RuntimeCache;
+use ShadowORM\Core\Domain\Contract\PostMetaReaderInterface;
 use ShadowORM\Core\Domain\Contract\ShadowRepositoryInterface;
 use ShadowORM\Core\Domain\Entity\ShadowEntity;
-use ShadowORM\Core\Application\Cache\RuntimeCache;
-use WP_Post;
 
 final class SyncService
 {
     public function __construct(
         private readonly ShadowRepositoryInterface $repository,
         private readonly RuntimeCache $cache,
+        private readonly PostMetaReaderInterface $metaReader,
     ) {
     }
 
@@ -25,25 +26,13 @@ final class SyncService
             return;
         }
 
-        // Bypass ReadInterceptor and cache - fetch raw meta from Source of Truth (wp_postmeta)
-        // This avoids circular dependency where syncing reads incomplete data from Shadow Table
-        global $wpdb;
-        $rawMeta = $wpdb->get_results(
-            $wpdb->prepare("SELECT meta_key, meta_value FROM $wpdb->postmeta WHERE post_id = %d", $postId),
-            ARRAY_A
-        );
-
-        $meta = [];
-        foreach ($rawMeta as $row) {
-            $meta[$row['meta_key']][] = $row['meta_value'];
-        }
-        $normalizedMeta = $this->normalizeMetaData($meta);
+        $meta = $this->metaReader->getPostMeta($postId);
 
         $entity = new ShadowEntity(
             postId: $postId,
             postType: $post->post_type,
             content: $post->post_content,
-            metaData: $normalizedMeta,
+            metaData: $this->normalizeMetaData($meta),
         );
 
         $this->repository->save($entity);
@@ -56,35 +45,17 @@ final class SyncService
         $this->cache->delete($postId);
     }
 
-    /**
-     * @return int Number of migrated posts
-     */
     public function migrateAll(string $postType, int $batchSize = 500, ?callable $progress = null): int
     {
-        global $wpdb;
-
-        $total = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = %s AND post_status != 'auto-draft'",
-                $postType
-            )
-        );
-
+        $total = $this->metaReader->countPosts($postType);
         $migrated = 0;
         $offset = 0;
 
         while ($offset < $total) {
-            $posts = $wpdb->get_col(
-                $wpdb->prepare(
-                    "SELECT ID FROM {$wpdb->posts} WHERE post_type = %s AND post_status != 'auto-draft' LIMIT %d OFFSET %d",
-                    $postType,
-                    $batchSize,
-                    $offset
-                )
-            );
+            $postIds = $this->metaReader->getPostIds($postType, $batchSize, $offset);
 
-            foreach ($posts as $postId) {
-                $this->syncPost((int) $postId);
+            foreach ($postIds as $postId) {
+                $this->syncPost($postId);
                 $migrated++;
             }
 
@@ -95,12 +66,6 @@ final class SyncService
             $offset += $batchSize;
         }
 
-        /**
-         * Fires after sync/migration is completed for a post type.
-         * 
-         * @param string $postType The post type that was synced
-         * @param int $migrated Number of posts migrated
-         */
         do_action('shadow_orm_sync_completed', $postType, $migrated);
 
         return $migrated;
@@ -108,11 +73,25 @@ final class SyncService
 
     public function rollback(string $postType): void
     {
+        $total = $this->metaReader->countPosts($postType);
+        $offset = 0;
+        $batchSize = 500;
+
+        while ($offset < $total) {
+            $postIds = $this->metaReader->getPostIds($postType, $batchSize, $offset);
+
+            foreach ($postIds as $postId) {
+                $this->repository->remove($postId);
+            }
+
+            $offset += $batchSize;
+        }
+
         $this->cache->clear();
     }
 
     /**
-     * @param array<string, array<mixed>> $meta
+     * @param array<string, array<string>> $meta
      * @return array<string, mixed>
      */
     private function normalizeMetaData(array $meta): array
@@ -120,10 +99,8 @@ final class SyncService
         $normalized = [];
 
         foreach ($meta as $key => $values) {
-            // Allow all keys, including private ones (WooCommerce uses _price, Elementor _elementor_data)
-            // But skip internal WP meta if needed (e.g. _edit_lock) - for now allow almost all
             if ($key === '_edit_lock' || $key === '_edit_last') {
-                 continue;
+                continue;
             }
 
             $value = $values[0] ?? null;
@@ -132,8 +109,7 @@ final class SyncService
                 continue;
             }
 
-            $unserialized = maybe_unserialize($value);
-            $normalized[$key] = $unserialized;
+            $normalized[$key] = maybe_unserialize($value);
         }
 
         return $normalized;

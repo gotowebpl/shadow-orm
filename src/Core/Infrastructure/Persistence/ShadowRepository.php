@@ -16,7 +16,7 @@ final class ShadowRepository implements ShadowRepositoryInterface
     public function __construct(
         private readonly StorageDriverInterface $driver,
         private readonly SchemaDefinition $schema,
-        string $tablePrefix = 'wp_',
+        private readonly string $tablePrefix = 'wp_',
     ) {
         $this->table = $schema->getTableName($tablePrefix);
     }
@@ -48,23 +48,22 @@ final class ShadowRepository implements ShadowRepositoryInterface
         ]);
     }
 
+    /**
+     * @param array<int> $postIds
+     * @return array<int, ShadowEntity>
+     */
     public function findMany(array $postIds): array
     {
-        $result = [];
-
-        foreach ($postIds as $postId) {
-            $entity = $this->find($postId);
-            if ($entity !== null) {
-                $result[$postId] = $entity;
-            }
+        if (empty($postIds)) {
+            return [];
         }
 
-        return $result;
+        return $this->driver->findMany($this->table, $postIds);
     }
 
     public function exists(int $postId): bool
     {
-        return $this->find($postId) !== null;
+        return $this->driver->exists($this->table, $postId);
     }
 
     public function getTable(): string

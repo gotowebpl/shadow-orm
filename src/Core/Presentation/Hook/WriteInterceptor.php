@@ -4,21 +4,27 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Presentation\Hook;
 
-use ShadowORM\Core\Application\Service\SyncService;
 use ShadowORM\Core\Application\Cache\RuntimeCache;
+use ShadowORM\Core\Application\Service\SyncService;
+use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
+use ShadowORM\Core\Domain\ValueObject\SupportedTypes;
 use ShadowORM\Core\Infrastructure\Driver\DriverFactory;
 use ShadowORM\Core\Infrastructure\Persistence\ShadowRepository;
 use ShadowORM\Core\Infrastructure\Persistence\ShadowTableManager;
-use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
+use ShadowORM\Core\Infrastructure\Persistence\WpPostMetaReader;
 use WP_Post;
 
 final class WriteInterceptor
 {
-    private static array $supportedTypes = ['post', 'page', 'product'];
+    private static ?DriverFactory $factory = null;
+    private static ?ShadowTableManager $tableManager = null;
+    private static ?WpPostMetaReader $metaReader = null;
+    private static array $repositories = [];
+    private static array $syncServices = [];
 
     public static function onSavePost(int $postId, WP_Post $post, bool $update): void
     {
-        if (!in_array($post->post_type, self::$supportedTypes, true)) {
+        if (!SupportedTypes::isSupported($post->post_type)) {
             return;
         }
 
@@ -35,24 +41,18 @@ final class WriteInterceptor
 
     public static function onDeletePost(int $postId, WP_Post $post): void
     {
-        if (!in_array($post->post_type, self::$supportedTypes, true)) {
+        if (!SupportedTypes::isSupported($post->post_type)) {
             return;
         }
 
         self::deletePost($postId, $post->post_type);
     }
 
-    /**
-     * Hook for updated_post_meta and added_post_meta
-     */
     public static function onMetaChange(int $metaId, int $objectId, string $metaKey, mixed $metaValue): void
     {
         self::handleMetaSync($objectId);
     }
 
-    /**
-     * Hook for deleted_post_meta - first argument can be array or int
-     */
     public static function onMetaDeleted(array|int $metaIds, int $objectId, string $metaKey, mixed $metaValue): void
     {
         self::handleMetaSync($objectId);
@@ -60,51 +60,81 @@ final class WriteInterceptor
 
     private static function handleMetaSync(int $objectId): void
     {
-        $post = get_post($objectId);
-        if (!$post || !in_array($post->post_type, self::$supportedTypes, true)) {
+        $postType = get_post_type($objectId);
+
+        if ($postType === false || !SupportedTypes::isSupported($postType)) {
             return;
         }
 
-        self::syncPost($objectId, $post->post_type);
+        self::syncPost($objectId, $postType);
     }
 
     private static function syncPost(int $postId, string $postType): void
     {
-        global $wpdb;
-
-        $factory = new DriverFactory($wpdb);
-        $tableManager = new ShadowTableManager($wpdb, $factory);
+        $tableManager = self::getTableManager();
 
         if (!$tableManager->tableExists($postType)) {
             return;
         }
 
-        $driver = $factory->create();
-        $schema = new SchemaDefinition($postType);
-        $repository = new ShadowRepository($driver, $schema, $wpdb->prefix);
-        $cache = new RuntimeCache();
-
-        $syncService = new SyncService($repository, $cache);
-        $syncService->syncPost($postId);
+        self::getSyncService($postType)->syncPost($postId);
     }
 
     private static function deletePost(int $postId, string $postType): void
     {
-        global $wpdb;
-
-        $factory = new DriverFactory($wpdb);
-        $tableManager = new ShadowTableManager($wpdb, $factory);
+        $tableManager = self::getTableManager();
 
         if (!$tableManager->tableExists($postType)) {
             return;
         }
 
-        $driver = $factory->create();
+        self::getSyncService($postType)->deletePost($postId);
+    }
+
+    private static function getFactory(): DriverFactory
+    {
+        if (self::$factory === null) {
+            global $wpdb;
+            self::$factory = new DriverFactory($wpdb);
+        }
+
+        return self::$factory;
+    }
+
+    private static function getTableManager(): ShadowTableManager
+    {
+        if (self::$tableManager === null) {
+            global $wpdb;
+            self::$tableManager = new ShadowTableManager($wpdb, self::getFactory());
+        }
+
+        return self::$tableManager;
+    }
+
+    private static function getMetaReader(): WpPostMetaReader
+    {
+        if (self::$metaReader === null) {
+            global $wpdb;
+            self::$metaReader = new WpPostMetaReader($wpdb);
+        }
+
+        return self::$metaReader;
+    }
+
+    private static function getSyncService(string $postType): SyncService
+    {
+        if (isset(self::$syncServices[$postType])) {
+            return self::$syncServices[$postType];
+        }
+
+        global $wpdb;
+
+        $driver = self::getFactory()->create();
         $schema = new SchemaDefinition($postType);
         $repository = new ShadowRepository($driver, $schema, $wpdb->prefix);
         $cache = new RuntimeCache();
+        $metaReader = self::getMetaReader();
 
-        $syncService = new SyncService($repository, $cache);
-        $syncService->deletePost($postId);
+        return self::$syncServices[$postType] = new SyncService($repository, $cache, $metaReader);
     }
 }

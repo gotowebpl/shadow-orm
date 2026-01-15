@@ -23,10 +23,10 @@ final class ShadowRepositoryTest extends TestCase
         $driver = Mockery::mock(StorageDriverInterface::class);
         $schema = new SchemaDefinition('post');
 
-        $driver->shouldReceive('findByPostId')
+        $driver->shouldReceive('exists')
             ->once()
             ->with('wp_shadow_post', 1)
-            ->andReturn(null);
+            ->andReturn(false);
 
         $driver->shouldReceive('insert')
             ->once()
@@ -46,12 +46,10 @@ final class ShadowRepositoryTest extends TestCase
         $driver = Mockery::mock(StorageDriverInterface::class);
         $schema = new SchemaDefinition('post');
 
-        $existingEntity = new ShadowEntity(postId: 1, postType: 'post');
-
-        $driver->shouldReceive('findByPostId')
+        $driver->shouldReceive('exists')
             ->once()
             ->with('wp_shadow_post', 1)
-            ->andReturn($existingEntity);
+            ->andReturn(true);
 
         $driver->shouldReceive('update')
             ->once()
@@ -146,17 +144,10 @@ final class ShadowRepositoryTest extends TestCase
         $entity1 = new ShadowEntity(postId: 1, postType: 'post');
         $entity3 = new ShadowEntity(postId: 3, postType: 'post');
 
-        $driver->shouldReceive('findByPostId')
-            ->with('wp_shadow_post', 1)
-            ->andReturn($entity1);
-
-        $driver->shouldReceive('findByPostId')
-            ->with('wp_shadow_post', 2)
-            ->andReturn(null);
-
-        $driver->shouldReceive('findByPostId')
-            ->with('wp_shadow_post', 3)
-            ->andReturn($entity3);
+        $driver->shouldReceive('findMany')
+            ->once()
+            ->with('wp_shadow_post', [1, 2, 3])
+            ->andReturn([1 => $entity1, 3 => $entity3]);
 
         $repository = new ShadowRepository($driver, $schema, 'wp_');
         $result = $repository->findMany([1, 2, 3]);
@@ -172,13 +163,13 @@ final class ShadowRepositoryTest extends TestCase
         $driver = Mockery::mock(StorageDriverInterface::class);
         $schema = new SchemaDefinition('post');
 
-        $driver->shouldReceive('findByPostId')
+        $driver->shouldReceive('exists')
             ->with('wp_shadow_post', 1)
-            ->andReturn(new ShadowEntity(postId: 1, postType: 'post'));
+            ->andReturn(true);
 
-        $driver->shouldReceive('findByPostId')
+        $driver->shouldReceive('exists')
             ->with('wp_shadow_post', 2)
-            ->andReturn(null);
+            ->andReturn(false);
 
         $repository = new ShadowRepository($driver, $schema, 'wp_');
 

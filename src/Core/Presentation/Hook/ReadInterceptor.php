@@ -5,14 +5,17 @@ declare(strict_types=1);
 namespace ShadowORM\Core\Presentation\Hook;
 
 use ShadowORM\Core\Application\Cache\RuntimeCache;
+use ShadowORM\Core\Domain\Entity\ShadowEntity;
+use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
+use ShadowORM\Core\Domain\ValueObject\SupportedTypes;
 use ShadowORM\Core\Infrastructure\Driver\DriverFactory;
 use ShadowORM\Core\Infrastructure\Persistence\ShadowRepository;
-use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
 
 final class ReadInterceptor
 {
     private static ?RuntimeCache $cache = null;
-    private static array $supportedTypes = ['post', 'page', 'product'];
+    private static ?DriverFactory $factory = null;
+    private static array $repositories = [];
 
     public static function intercept(
         mixed $value,
@@ -21,17 +24,13 @@ final class ReadInterceptor
         bool $single,
         string $metaType
     ): mixed {
-        if ($metaType !== 'post') {
+        if ($metaType !== 'post' || $value !== null) {
             return $value;
         }
 
-        if ($value !== null) {
-            return $value;
-        }
+        $postType = get_post_type($objectId);
 
-        $post = get_post($objectId);
-
-        if ($post === null || !in_array($post->post_type, self::$supportedTypes, true)) {
+        if ($postType === false || !SupportedTypes::isSupported($postType)) {
             return $value;
         }
 
@@ -44,7 +43,7 @@ final class ReadInterceptor
         $entity = $cache->get($objectId);
 
         if ($entity === null) {
-            $entity = self::loadEntity($objectId, $post->post_type);
+            $entity = self::loadEntity($objectId, $postType);
 
             if ($entity === null) {
                 $cache->markNotFound($objectId);
@@ -55,38 +54,91 @@ final class ReadInterceptor
         }
 
         if ($metaKey === '') {
-            // Return raw map directly, do not wrap in array
-            return array_map(fn($v) => is_array($v) ? $v : [$v], $entity->getAllMeta());
+            return array_map(static fn($v) => is_array($v) ? $v : [$v], $entity->getAllMeta());
         }
 
         if (!$entity->hasMeta($metaKey)) {
             return $value;
         }
 
-        $metaValue = $entity->getMeta($metaKey);
-
-        // Always return array wrapping the value.
-        // If single=true, WP core extracts [0].
-        // If single=false, WP core returns the array.
-        return [$metaValue];
+        return [$entity->getMeta($metaKey)];
     }
 
-    private static function loadEntity(int $postId, string $postType): ?\ShadowORM\Core\Domain\Entity\ShadowEntity
+    public static function preloadEntities(array $postIds, string $postType): void
     {
+        if (empty($postIds)) {
+            return;
+        }
+
+        $cache = self::getCache();
+        $toLoad = [];
+
+        foreach ($postIds as $postId) {
+            if (!$cache->has($postId) && !$cache->isMarkedNotFound($postId)) {
+                $toLoad[] = (int) $postId;
+            }
+        }
+
+        if (empty($toLoad)) {
+            return;
+        }
+
+        $repository = self::getRepository($postType);
+        if ($repository === null) {
+            return;
+        }
+
+        $entities = $repository->findMany($toLoad);
+
+        foreach ($entities as $postId => $entity) {
+            $cache->set($postId, $entity);
+        }
+
+        foreach ($toLoad as $postId) {
+            if (!isset($entities[$postId])) {
+                $cache->markNotFound($postId);
+            }
+        }
+    }
+
+    private static function loadEntity(int $postId, string $postType): ?ShadowEntity
+    {
+        $repository = self::getRepository($postType);
+
+        return $repository?->find($postId);
+    }
+
+    private static function getRepository(string $postType): ?ShadowRepository
+    {
+        if (isset(self::$repositories[$postType])) {
+            return self::$repositories[$postType];
+        }
+
         global $wpdb;
 
-        $factory = new DriverFactory($wpdb);
+        $factory = self::getFactory();
+        $schema = new SchemaDefinition($postType);
+        $tableName = $schema->getTableName($wpdb->prefix);
 
-        try {
-            $driver = $factory->create();
-        } catch (\Exception) {
+        $exists = $wpdb->get_var($wpdb->prepare("SHOW TABLES LIKE %s", $tableName));
+
+        if (!$exists) {
             return null;
         }
 
-        $schema = new SchemaDefinition($postType);
-        $repository = new ShadowRepository($driver, $schema, $wpdb->prefix);
+        $driver = $factory->create();
 
-        return $repository->find($postId);
+        return self::$repositories[$postType] = new ShadowRepository($driver, $schema, $wpdb->prefix);
+    }
+
+    private static function getFactory(): DriverFactory
+    {
+        if (self::$factory === null) {
+            global $wpdb;
+            self::$factory = new DriverFactory($wpdb);
+        }
+
+        return self::$factory;
     }
 
     private static function getCache(): RuntimeCache

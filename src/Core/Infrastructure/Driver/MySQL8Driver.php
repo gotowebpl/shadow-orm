@@ -10,6 +10,8 @@ use wpdb;
 
 final class MySQL8Driver implements StorageDriverInterface
 {
+    private const JSON_FLAGS = JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR;
+
     public function __construct(
         private readonly wpdb $wpdb,
     ) {
@@ -23,7 +25,7 @@ final class MySQL8Driver implements StorageDriverInterface
                 'post_id' => $entity->postId,
                 'post_type' => $entity->postType,
                 'content' => $entity->content,
-                'meta_data' => json_encode($entity->getAllMeta(), JSON_UNESCAPED_UNICODE),
+                'meta_data' => json_encode($entity->getAllMeta(), self::JSON_FLAGS),
             ],
             ['%d', '%s', '%s', '%s']
         );
@@ -33,42 +35,31 @@ final class MySQL8Driver implements StorageDriverInterface
 
     public function update(string $table, ShadowEntity $entity): bool
     {
-        $result = $this->wpdb->update(
+        return $this->wpdb->update(
             $table,
             [
                 'content' => $entity->content,
-                'meta_data' => json_encode($entity->getAllMeta(), JSON_UNESCAPED_UNICODE),
+                'meta_data' => json_encode($entity->getAllMeta(), self::JSON_FLAGS),
             ],
             ['post_id' => $entity->postId],
             ['%s', '%s'],
             ['%d']
-        );
-
-        return $result !== false;
+        ) !== false;
     }
 
     public function delete(string $table, int $postId): bool
     {
-        $result = $this->wpdb->delete($table, ['post_id' => $postId], ['%d']);
-
-        return $result !== false;
+        return $this->wpdb->delete($table, ['post_id' => $postId], ['%d']) !== false;
     }
 
     public function findByPostId(string $table, int $postId): ?ShadowEntity
     {
         $row = $this->wpdb->get_row(
-            $this->wpdb->prepare(
-                "SELECT * FROM {$table} WHERE post_id = %d",
-                $postId
-            ),
+            $this->wpdb->prepare("SELECT post_id, post_type, content, meta_data FROM {$table} WHERE post_id = %d LIMIT 1", $postId),
             ARRAY_A
         );
 
-        if ($row === null) {
-            return null;
-        }
-
-        return $this->hydrateEntity($row);
+        return $row ? $this->hydrateEntity($row) : null;
     }
 
     public function findByMetaQuery(string $table, array $metaQuery): array
@@ -79,24 +70,24 @@ final class MySQL8Driver implements StorageDriverInterface
             return [];
         }
 
-        $sql = "SELECT * FROM {$table} WHERE {$where}";
-        $rows = $this->wpdb->get_results($sql, ARRAY_A);
+        $rows = $this->wpdb->get_results(
+            "SELECT post_id, post_type, content, meta_data FROM {$table} WHERE {$where}",
+            ARRAY_A
+        );
 
-        return array_map(fn(array $row) => $this->hydrateEntity($row), $rows);
+        return array_map($this->hydrateEntity(...), $rows);
     }
 
     public function createIndex(string $table, string $jsonPath, string $indexName): void
     {
         $virtualColumn = $indexName . '_idx';
-        
-        $this->wpdb->query(
-            "ALTER TABLE {$table} ADD COLUMN IF NOT EXISTS {$virtualColumn} VARCHAR(255) 
-             GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(meta_data, '{$jsonPath}'))) STORED"
-        );
 
         $this->wpdb->query(
-            "CREATE INDEX IF NOT EXISTS {$indexName} ON {$table} ({$virtualColumn})"
+            "ALTER TABLE {$table} ADD COLUMN IF NOT EXISTS {$virtualColumn} VARCHAR(255) 
+             GENERATED ALWAYS AS (meta_data->>'{$jsonPath}') STORED"
         );
+
+        $this->wpdb->query("CREATE INDEX IF NOT EXISTS {$indexName} ON {$table} ({$virtualColumn})");
     }
 
     public function dropIndex(string $table, string $indexName): void
@@ -114,6 +105,43 @@ final class MySQL8Driver implements StorageDriverInterface
         return 'MySQL8';
     }
 
+    public function findMany(string $table, array $postIds): array
+    {
+        if (empty($postIds)) {
+            return [];
+        }
+
+        $postIds = array_map('intval', $postIds);
+        $placeholders = implode(',', array_fill(0, count($postIds), '%d'));
+
+        $rows = $this->wpdb->get_results(
+            $this->wpdb->prepare(
+                "SELECT post_id, post_type, content, meta_data FROM {$table} WHERE post_id IN ({$placeholders})",
+                ...$postIds
+            ),
+            ARRAY_A
+        );
+
+        if (empty($rows)) {
+            return [];
+        }
+
+        $result = [];
+        foreach ($rows as $row) {
+            $postId = (int) $row['post_id'];
+            $result[$postId] = $this->hydrateEntity($row);
+        }
+
+        return $result;
+    }
+
+    public function exists(string $table, int $postId): bool
+    {
+        return (bool) $this->wpdb->get_var(
+            $this->wpdb->prepare("SELECT 1 FROM {$table} WHERE post_id = %d LIMIT 1", $postId)
+        );
+    }
+
     private function buildMetaQueryWhere(array $metaQuery): string
     {
         $conditions = [];
@@ -123,45 +151,37 @@ final class MySQL8Driver implements StorageDriverInterface
                 continue;
             }
 
-            $key = $query['key'];
+            $key = $this->wpdb->_real_escape($query['key']);
             $value = $query['value'] ?? null;
             $compare = strtoupper($query['compare'] ?? '=');
-
             $jsonPath = '$.' . $key;
+            $escapedPath = $this->wpdb->_real_escape($jsonPath);
 
             $condition = match ($compare) {
-                '=' => $this->wpdb->prepare(
-                    "JSON_UNQUOTE(JSON_EXTRACT(meta_data, %s)) = %s",
-                    $jsonPath,
-                    $value
-                ),
-                '!=' => $this->wpdb->prepare(
-                    "JSON_UNQUOTE(JSON_EXTRACT(meta_data, %s)) != %s",
-                    $jsonPath,
-                    $value
-                ),
-                'LIKE' => $this->wpdb->prepare(
-                    "JSON_UNQUOTE(JSON_EXTRACT(meta_data, %s)) LIKE %s",
-                    $jsonPath,
-                    '%' . $this->wpdb->esc_like($value) . '%'
-                ),
+                '=' => $this->wpdb->prepare("meta_data->>%s = %s", $jsonPath, $value),
+                '!=' => $this->wpdb->prepare("meta_data->>%s != %s", $jsonPath, $value),
+                '>' => $this->wpdb->prepare("CAST(meta_data->>%s AS DECIMAL(20,6)) > %f", $jsonPath, (float) $value),
+                '<' => $this->wpdb->prepare("CAST(meta_data->>%s AS DECIMAL(20,6)) < %f", $jsonPath, (float) $value),
+                '>=' => $this->wpdb->prepare("CAST(meta_data->>%s AS DECIMAL(20,6)) >= %f", $jsonPath, (float) $value),
+                '<=' => $this->wpdb->prepare("CAST(meta_data->>%s AS DECIMAL(20,6)) <= %f", $jsonPath, (float) $value),
+                'LIKE' => $this->wpdb->prepare("meta_data->>%s LIKE %s", $jsonPath, '%' . $this->wpdb->esc_like((string) $value) . '%'),
                 'IN' => sprintf(
-                    "JSON_UNQUOTE(JSON_EXTRACT(meta_data, '%s')) IN (%s)",
-                    $jsonPath,
+                    "meta_data->>'%s' IN (%s)",
+                    $escapedPath,
                     implode(',', array_map(fn($v) => $this->wpdb->prepare('%s', $v), (array) $value))
                 ),
                 'NOT IN' => sprintf(
-                    "JSON_UNQUOTE(JSON_EXTRACT(meta_data, '%s')) NOT IN (%s)",
-                    $jsonPath,
+                    "meta_data->>'%s' NOT IN (%s)",
+                    $escapedPath,
                     implode(',', array_map(fn($v) => $this->wpdb->prepare('%s', $v), (array) $value))
                 ),
-                'EXISTS' => "JSON_CONTAINS_PATH(meta_data, 'one', '{$jsonPath}')",
-                'NOT EXISTS' => "NOT JSON_CONTAINS_PATH(meta_data, 'one', '{$jsonPath}')",
+                'EXISTS' => sprintf("JSON_CONTAINS_PATH(meta_data, 'one', '%s')", $escapedPath),
+                'NOT EXISTS' => sprintf("NOT JSON_CONTAINS_PATH(meta_data, 'one', '%s')", $escapedPath),
                 'BETWEEN' => $this->wpdb->prepare(
-                    "JSON_UNQUOTE(JSON_EXTRACT(meta_data, %s)) BETWEEN %s AND %s",
+                    "CAST(meta_data->>%s AS DECIMAL(20,6)) BETWEEN %f AND %f",
                     $jsonPath,
-                    $value[0] ?? '',
-                    $value[1] ?? ''
+                    (float) ($value[0] ?? 0),
+                    (float) ($value[1] ?? 0)
                 ),
                 default => null,
             };
@@ -171,20 +191,26 @@ final class MySQL8Driver implements StorageDriverInterface
             }
         }
 
-        $relation = strtoupper($metaQuery['relation'] ?? 'AND');
+        if (empty($conditions)) {
+            return '';
+        }
+
+        $relationValue = $metaQuery['relation'] ?? 'AND';
+        $relation = in_array(strtoupper((string) $relationValue), ['AND', 'OR'], true)
+            ? strtoupper((string) $relationValue)
+            : 'AND';
 
         return implode(" {$relation} ", $conditions);
     }
 
     private function hydrateEntity(array $row): ShadowEntity
     {
-        $metaData = json_decode($row['meta_data'] ?? '{}', true) ?: [];
-
         return new ShadowEntity(
             postId: (int) $row['post_id'],
             postType: (string) ($row['post_type'] ?? ''),
             content: (string) ($row['content'] ?? ''),
-            metaData: $metaData,
+            metaData: json_decode($row['meta_data'] ?? '{}', true, 512, JSON_THROW_ON_ERROR) ?: [],
         );
     }
 }
+
