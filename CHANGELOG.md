@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Fix: Corrected template path in `AdminPage.php` (`dirname(__DIR__, 3)` → `dirname(__DIR__, 4)`)
+- Fix: `WriteInterceptor::onMetaDeleted()` now accepts `array|int` for `deleted_post_meta` hook compatibility
+
 ## [1.0.0] - 2026-01-15
 
 ### Added

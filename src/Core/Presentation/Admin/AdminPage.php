@@ -70,6 +70,6 @@ final class AdminPage
         $settings = SettingsController::getSettings();
         $status = SettingsController::getStatus();
 
-        include dirname(__DIR__, 3) . '/templates/admin-page.php';
+        include dirname(__DIR__, 4) . '/templates/admin-page.php';
     }
 }
