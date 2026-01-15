@@ -1,0 +1,21 @@
+parameters:
+    level: 5
+    paths:
+        - src
+    reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # WordPress classes (partial matches)
+        - '#Instantiated class WP_REST_Response not found#'
+        - '#Instantiated class WP_Error not found#'
+        - '#has invalid return type WP_#'
+        - '#has invalid type WP_#'
+        - '#on an unknown class WP_#'
+        - '#Access to property .* on an unknown class#'
+        # WordPress functions
+        - '#Function __ not found#'
+        - '#Function esc_html not found#'
+        - '#Function esc_html_e not found#'
+        - '#Function esc_attr not found#'
+        - '#Function checked not found#'
+        - '#Function in_array\(\) expects array, mixed given#'
+        - '~Parameter \#1 .* of function array_map expects .*, .sanitize_key. given~'

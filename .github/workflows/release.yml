@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: "8.1"
+          extensions: json, mbstring
+          tools: composer:v2
+
+      - name: Get version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+
+      - name: Install dependencies
+        run: composer install --no-dev --optimize-autoloader --no-interaction
+
+      - name: Remove dev files
+        run: |
+          rm -rf tests/
+          rm -rf .github/
+          rm -f phpunit.xml.dist
+          rm -f phpstan.neon
+          rm -f .gitignore
+          rm -f composer.lock
+
+      - name: Create plugin archive
+        run: |
+          mkdir -p build
+          cd ..
+          zip -r shadow-orm/build/shadow-orm-${{ steps.version.outputs.VERSION }}.zip shadow-orm \
+            -x "shadow-orm/build/*" \
+            -x "shadow-orm/.git/*" \
+            -x "shadow-orm/vendor/bin/*"
+
+      - name: Extract changelog
+        id: changelog
+        run: |
+          CHANGELOG=$(sed -n '/^## \[${{ steps.version.outputs.VERSION }}\]/,/^## \[/p' CHANGELOG.md | sed '$d')
+          echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: ShadowORM v${{ steps.version.outputs.VERSION }}
+          body: |
+            ## ShadowORM MySQL Accelerator v${{ steps.version.outputs.VERSION }}
+
+            ${{ steps.changelog.outputs.CHANGELOG }}
+
+            ### Installation
+
+            1. Download `shadow-orm-${{ steps.version.outputs.VERSION }}.zip`
+            2. Upload to `wp-content/plugins/`
+            3. Activate in WordPress Admin
+
+            ### Requirements
+
+            - PHP 8.1+
+            - WordPress 6.0+
+            - MySQL 5.7+ or MariaDB 10.2+
+
+            ---
+
+            **[Get ShadowORM Pro →](https://gotowebplugins.com/shadow-orm-pro)**
+          files: |
+            build/shadow-orm-${{ steps.version.outputs.VERSION }}.zip
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        php-version: ["8.1", "8.2", "8.3"]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: json, mbstring
+          tools: composer:v2
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction
+
+      - name: Run PHPUnit
+        run: ./vendor/bin/phpunit --testsuite=unit

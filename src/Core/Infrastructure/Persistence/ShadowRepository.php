@@ -1,0 +1,79 @@
+<?php
+
+declare(strict_types=1);
+
+namespace ShadowORM\Core\Infrastructure\Persistence;
+
+use ShadowORM\Core\Domain\Contract\ShadowRepositoryInterface;
+use ShadowORM\Core\Domain\Contract\StorageDriverInterface;
+use ShadowORM\Core\Domain\Entity\ShadowEntity;
+use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
+
+final class ShadowRepository implements ShadowRepositoryInterface
+{
+    private string $table;
+
+    public function __construct(
+        private readonly StorageDriverInterface $driver,
+        private readonly SchemaDefinition $schema,
+        string $tablePrefix = 'wp_',
+    ) {
+        $this->table = $schema->getTableName($tablePrefix);
+    }
+
+    public function save(ShadowEntity $entity): void
+    {
+        if ($this->exists($entity->postId)) {
+            $this->driver->update($this->table, $entity);
+            return;
+        }
+
+        $this->driver->insert($this->table, $entity);
+    }
+
+    public function find(int $postId): ?ShadowEntity
+    {
+        return $this->driver->findByPostId($this->table, $postId);
+    }
+
+    public function remove(int $postId): void
+    {
+        $this->driver->delete($this->table, $postId);
+    }
+
+    public function findByMeta(string $key, mixed $value): array
+    {
+        return $this->driver->findByMetaQuery($this->table, [
+            ['key' => $key, 'value' => $value, 'compare' => '='],
+        ]);
+    }
+
+    public function findMany(array $postIds): array
+    {
+        $result = [];
+
+        foreach ($postIds as $postId) {
+            $entity = $this->find($postId);
+            if ($entity !== null) {
+                $result[$postId] = $entity;
+            }
+        }
+
+        return $result;
+    }
+
+    public function exists(int $postId): bool
+    {
+        return $this->find($postId) !== null;
+    }
+
+    public function getTable(): string
+    {
+        return $this->table;
+    }
+
+    public function getSchema(): SchemaDefinition
+    {
+        return $this->schema;
+    }
+}
