@@ -17,7 +17,6 @@ declare(strict_types=1);
 
 namespace ShadowORM;
 
-use ShadowORM\Core\Infrastructure\Installer\DropInInstaller;
 use ShadowORM\Core\Infrastructure\Updater\GitHubUpdater;
 use ShadowORM\Core\Application\Service\AutoDiscoveryService;
 use ShadowORM\Core\Presentation\Hook\ReadInterceptor;
@@ -39,10 +38,7 @@ define('SHADOW_ORM_VERSION', VERSION);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-if (!defined('SHADOW_ORM_DB_LOADED')) {
-    register_activation_hook(__FILE__, [DropInInstaller::class, 'install']);
-    register_deactivation_hook(__FILE__, [DropInInstaller::class, 'uninstall']);
-}
+// NOTE: Drop-in installation removed - ShadowORM uses WordPress hooks, not custom wpdb
 
 final class ShadowORM
 {
