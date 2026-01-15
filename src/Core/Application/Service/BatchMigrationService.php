@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Application\Service;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 final class BatchMigrationService
 {
     private const OPTION_PREFIX = 'shadow_orm_migration_';

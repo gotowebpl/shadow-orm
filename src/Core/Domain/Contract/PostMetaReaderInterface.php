@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Domain\Contract;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 interface PostMetaReaderInterface
 {
     /**

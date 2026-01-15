@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Application\Service;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Application\Cache\RuntimeCache;
 use ShadowORM\Core\Domain\Contract\PostMetaReaderInterface;
 use ShadowORM\Core\Domain\Contract\ShadowRepositoryInterface;

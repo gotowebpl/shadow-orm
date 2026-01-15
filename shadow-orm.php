@@ -70,8 +70,8 @@ final class ShadowORM
         if (version_compare($version, MIN_MYSQL_VERSION, '<')) {
             add_action('admin_notices', static fn() => printf(
                 '<div class="notice notice-error"><p>ShadowORM requires MySQL %s+. Current: %s</p></div>',
-                MIN_MYSQL_VERSION,
-                $version
+                esc_html(MIN_MYSQL_VERSION),
+                esc_html($version)
             ));
         }
     }

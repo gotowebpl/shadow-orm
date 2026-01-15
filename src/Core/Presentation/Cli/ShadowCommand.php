@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Presentation\Cli;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Application\Service\SyncService;
 use ShadowORM\Core\Application\Service\AutoDiscoveryService;
 use ShadowORM\Core\Application\Cache\RuntimeCache;

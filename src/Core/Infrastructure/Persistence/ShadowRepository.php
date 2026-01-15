@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Infrastructure\Persistence;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Domain\Contract\ShadowRepositoryInterface;
 use ShadowORM\Core\Domain\Contract\StorageDriverInterface;
 use ShadowORM\Core\Domain\Entity\ShadowEntity;

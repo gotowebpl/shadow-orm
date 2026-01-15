@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Application\Service;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Domain\Contract\StorageDriverInterface;
 use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
 

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Infrastructure\Installer;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use RuntimeException;
 
 final class DropInInstaller

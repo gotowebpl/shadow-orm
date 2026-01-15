@@ -1,0 +1,10 @@
+# /export-ignore means these files/folders are excluded from archives (zip files)
+/.github export-ignore
+/tests export-ignore
+/phpunit.xml.dist export-ignore
+/phpstan.neon export-ignore
+/.phpcs.xml export-ignore
+/.editorconfig export-ignore
+/.gitignore export-ignore
+/.gitattributes export-ignore
+/CONTRIBUTING.md export-ignore

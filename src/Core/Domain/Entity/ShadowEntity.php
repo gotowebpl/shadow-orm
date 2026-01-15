@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Domain\Entity;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 final class ShadowEntity
 {
     /** @var array<string, mixed> */

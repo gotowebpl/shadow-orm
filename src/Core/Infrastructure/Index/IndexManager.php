@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Infrastructure\Index;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use wpdb;
 
 final class IndexManager

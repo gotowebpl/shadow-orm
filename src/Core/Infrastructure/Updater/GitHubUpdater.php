@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Infrastructure\Updater;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use YahnisElsts\PluginUpdateChecker\v5\PucFactory;
 
 /**

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Infrastructure\Persistence;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
 use ShadowORM\Core\Infrastructure\Driver\DriverFactory;
 use wpdb;

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Application\Service;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
 use ShadowORM\Core\Infrastructure\Persistence\ShadowTableManager;
 use WP_Post_Type;

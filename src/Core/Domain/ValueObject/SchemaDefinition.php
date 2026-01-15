@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Domain\ValueObject;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 final readonly class SchemaDefinition
 {
     /**

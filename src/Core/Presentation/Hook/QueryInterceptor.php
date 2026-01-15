@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Presentation\Hook;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Application\Service\QueryService;
 use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
 use ShadowORM\Core\Domain\ValueObject\SupportedTypes;

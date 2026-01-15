@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Infrastructure\Driver;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Domain\Contract\StorageDriverInterface;
 use ShadowORM\Core\Domain\Entity\ShadowEntity;
 use wpdb;

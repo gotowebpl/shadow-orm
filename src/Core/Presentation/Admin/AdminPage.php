@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Presentation\Admin;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 final class AdminPage
 {
     private const MENU_SLUG = 'shadow-orm';

@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace ShadowORM\Core\Presentation\Hook;
 
+if (!defined('ABSPATH')) {
+    exit;
+}
+
 use ShadowORM\Core\Domain\ValueObject\SupportedTypes;
 use WP_Post;
 use WP_Query;
