@@ -10,7 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fix: Corrected template path in `AdminPage.php` (`dirname(__DIR__, 3)` → `dirname(__DIR__, 4)`)
+- Fix: Corrected asset URL path in `AdminPage.php` for admin.css/admin.js
 - Fix: `WriteInterceptor::onMetaDeleted()` now accepts `array|int` for `deleted_post_meta` hook compatibility
+- Fix: REST API routes now registered globally (not just in admin context)
+- Fix: Added Save Settings button with handler in admin panel
+- Fix: Sanitize table names - replace hyphens with underscores for SQL compatibility
+- Fix: Clean up orphaned shadow records during sync (records from deleted posts)
 
 ## [1.0.0] - 2026-01-15
 
