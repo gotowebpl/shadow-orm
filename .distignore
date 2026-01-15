@@ -1,0 +1,12 @@
+# Files/folders to exclude from WordPress.org distribution
+/.github
+/tests
+/phpunit.xml.dist
+/phpstan.neon
+/.phpcs.xml
+/.editorconfig
+/.gitignore
+/.distignore
+/CONTRIBUTING.md
+/composer.lock
+/.git

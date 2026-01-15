@@ -98,7 +98,8 @@ final class DropInInstaller
             return false;
         }
 
-        $content = file_get_contents($path);
+        $filesystem = self::getFilesystem();
+        $content = $filesystem->get_contents($path);
 
         return $content !== false && str_contains($content, 'ShadowORM Database Drop-In');
     }
@@ -106,9 +107,12 @@ final class DropInInstaller
     private static function backupExistingDropIn(string $path): void
     {
         $backup = $path . '.shadow-orm-backup';
+        $filesystem = self::getFilesystem();
         
-        if (!copy($path, $backup)) {
-            throw new RuntimeException("Failed to backup existing db.php to {$backup}");
+        if (!$filesystem->copy($path, $backup)) {
+            throw new RuntimeException(
+                sprintf('Failed to backup existing db.php to %s', esc_html($backup))
+            );
         }
     }
 
@@ -120,7 +124,8 @@ final class DropInInstaller
             return;
         }
 
-        rename($backup, $originalPath);
+        $filesystem = self::getFilesystem();
+        $filesystem->move($backup, $originalPath, true);
     }
 
     private static function createMuPluginsDir(): void
@@ -131,27 +136,53 @@ final class DropInInstaller
             return;
         }
 
-        if (!mkdir($dir, 0755, true) && !is_dir($dir)) {
-            throw new RuntimeException("Failed to create mu-plugins directory: {$dir}");
+        $filesystem = self::getFilesystem();
+        
+        if (!$filesystem->mkdir($dir, 0755) && !is_dir($dir)) {
+            throw new RuntimeException(
+                sprintf('Failed to create mu-plugins directory: %s', esc_html($dir))
+            );
         }
     }
 
     private static function copyFile(string $source, string $target): void
     {
         if (!file_exists($source)) {
-            throw new RuntimeException("Source file not found: {$source}");
+            throw new RuntimeException(
+                sprintf('Source file not found: %s', esc_html($source))
+            );
         }
 
-        if (!copy($source, $target)) {
-            throw new RuntimeException("Failed to copy {$source} to {$target}");
+        $filesystem = self::getFilesystem();
+        
+        if (!$filesystem->copy($source, $target, true)) {
+            throw new RuntimeException(
+                sprintf('Failed to copy %s to %s', esc_html($source), esc_html($target))
+            );
         }
     }
 
     private static function deleteFile(string $path): void
     {
-        if (!unlink($path)) {
-            throw new RuntimeException("Failed to delete file: {$path}");
+        $filesystem = self::getFilesystem();
+        
+        if (!$filesystem->delete($path)) {
+            throw new RuntimeException(
+                sprintf('Failed to delete file: %s', esc_html($path))
+            );
         }
+    }
+
+    private static function getFilesystem(): \WP_Filesystem_Base
+    {
+        global $wp_filesystem;
+
+        if (!$wp_filesystem) {
+            require_once ABSPATH . 'wp-admin/includes/file.php';
+            WP_Filesystem();
+        }
+
+        return $wp_filesystem;
     }
 
     private static function getContentDir(): string
@@ -166,7 +197,6 @@ final class DropInInstaller
 
     private static function getPluginDir(): string
     {
-        // Use plugin_dir_path if available, fallback to dirname
         if (function_exists('plugin_dir_path')) {
             $mainFile = dirname(__DIR__, 4) . '/shadow-orm.php';
             if (file_exists($mainFile)) {
