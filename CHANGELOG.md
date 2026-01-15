@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2026-01-15
+
+### Fixed
+
+- **WordPress.org Plugin Check compliance**
+  - Add `ABSPATH` check to all PHP files in `src/`
+  - Use `WP_Filesystem` API in `DropInInstaller` instead of direct PHP calls
+  - Add output escaping (`esc_html`) for exception messages
+  - Replace `.gitattributes` with `.distignore` for release exclusions
+  - Exclude `tests/`, `.github/`, `phpunit.xml.dist` from distribution packages
+
 ## [1.2.0] - 2026-01-15
 
 ### Added
