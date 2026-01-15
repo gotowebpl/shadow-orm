@@ -138,24 +138,45 @@
       const postType = $btn.data("post-type");
 
       $btn.addClass("syncing").prop("disabled", true);
-      showProgress(shadowOrmAdmin.i18n.syncing);
+      showProgress("Przygotowanie migracji...");
 
+      // Start batch migration
       api
-        .sync(postType)
+        .request("sync/start", "POST", { post_type: postType })
         .done(function (response) {
-          updateProgress(
-            100,
-            shadowOrmAdmin.i18n.syncComplete + " (" + response.migrated + ")"
-          );
-          setTimeout(function () {
-            hideProgress();
-            refreshStatus();
-          }, 1500);
+          const state = response.state;
+          updateProgress(0, "Migracja: 0 / " + state.total);
+
+          // Process batches
+          function processBatch() {
+            api
+              .request("sync/batch", "POST", { post_type: postType })
+              .done(function (batchResponse) {
+                const s = batchResponse.state;
+                const percent = Math.round((s.migrated / s.total) * 100);
+                updateProgress(percent, "Migracja: " + s.migrated + " / " + s.total);
+
+                if (s.status === "running") {
+                  setTimeout(processBatch, 100);
+                } else {
+                  updateProgress(100, "Zakończono! " + s.migrated + " rekordów");
+                  setTimeout(function () {
+                    hideProgress();
+                    refreshStatus();
+                  }, 1500);
+                  $btn.removeClass("syncing").prop("disabled", false);
+                }
+              })
+              .fail(function () {
+                updateProgress(0, "Błąd migracji");
+                $btn.removeClass("syncing").prop("disabled", false);
+              });
+          }
+
+          processBatch();
         })
         .fail(function () {
-          updateProgress(0, shadowOrmAdmin.i18n.syncError);
-        })
-        .always(function () {
+          updateProgress(0, "Błąd startu migracji");
           $btn.removeClass("syncing").prop("disabled", false);
         });
     });

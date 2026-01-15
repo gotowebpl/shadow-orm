@@ -19,11 +19,22 @@ final class AdminPage
     {
         add_options_page(
             __('ShadowORM Settings', 'shadow-orm'),
-            __('ShadowORM', 'shadow-orm'),
+            self::getMenuTitle(),
             self::CAPABILITY,
             self::MENU_SLUG,
             [self::class, 'render']
         );
+    }
+
+    private static function getMenuTitle(): string
+    {
+        $title = 'ShadowORM';
+
+        if (self::isProActive()) {
+            $title .= ' <span class="awaiting-mod">Pro</span>';
+        }
+
+        return $title;
     }
 
     public static function enqueueAssets(string $hook): void
@@ -52,6 +63,7 @@ final class AdminPage
         wp_localize_script('shadow-orm-admin', 'shadowOrmAdmin', [
             'restUrl' => rest_url('shadow-orm/v1/'),
             'nonce' => wp_create_nonce('wp_rest'),
+            'isPro' => self::isProActive(),
             'i18n' => [
                 'syncing' => __('Synchronizacja...', 'shadow-orm'),
                 'syncComplete' => __('Synchronizacja zakończona', 'shadow-orm'),
@@ -59,6 +71,8 @@ final class AdminPage
                 'confirm_rollback' => __('Czy na pewno chcesz usunąć tabelę shadow?', 'shadow-orm'),
             ],
         ]);
+
+        do_action('shadow_orm_admin_enqueue_scripts', $hook);
     }
 
     public static function render(): void
@@ -67,9 +81,49 @@ final class AdminPage
             return;
         }
 
+        $tabs = self::getTabs();
+        $currentTab = self::getCurrentTab($tabs);
         $settings = SettingsController::getSettings();
         $status = SettingsController::getStatus();
 
         include dirname(__DIR__, 4) . '/templates/admin-page.php';
     }
+
+    public static function getTabs(): array
+    {
+        $tabs = [
+            'dashboard' => [
+                'title' => __('Dashboard', 'shadow-orm'),
+                'icon' => 'dashicons-dashboard',
+            ],
+            'post-types' => [
+                'title' => __('Post Types', 'shadow-orm'),
+                'icon' => 'dashicons-database',
+            ],
+            'settings' => [
+                'title' => __('Settings', 'shadow-orm'),
+                'icon' => 'dashicons-admin-settings',
+            ],
+        ];
+
+        return apply_filters('shadow_orm_admin_tabs', $tabs);
+    }
+
+    public static function getCurrentTab(array $tabs): string
+    {
+        $tab = isset($_GET['tab']) ? sanitize_key($_GET['tab']) : 'dashboard';
+
+        return array_key_exists($tab, $tabs) ? $tab : 'dashboard';
+    }
+
+    public static function isProActive(): bool
+    {
+        return class_exists('ShadowORMPro\\ShadowORMPro');
+    }
+
+    public static function getMenuSlug(): string
+    {
+        return self::MENU_SLUG;
+    }
 }
+

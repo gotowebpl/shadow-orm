@@ -52,6 +52,24 @@ final class SettingsController
             'permission_callback' => [self::class, 'checkPermission'],
         ]);
 
+        register_rest_route('shadow-orm/v1', '/sync/start', [
+            'methods' => 'POST',
+            'callback' => [self::class, 'syncStartEndpoint'],
+            'permission_callback' => [self::class, 'checkPermission'],
+        ]);
+
+        register_rest_route('shadow-orm/v1', '/sync/batch', [
+            'methods' => 'POST',
+            'callback' => [self::class, 'syncBatchEndpoint'],
+            'permission_callback' => [self::class, 'checkPermission'],
+        ]);
+
+        register_rest_route('shadow-orm/v1', '/sync/progress', [
+            'methods' => 'GET',
+            'callback' => [self::class, 'syncProgressEndpoint'],
+            'permission_callback' => [self::class, 'checkPermission'],
+        ]);
+
         register_rest_route('shadow-orm/v1', '/rollback', [
             'methods' => 'POST',
             'callback' => [self::class, 'rollbackEndpoint'],
@@ -148,6 +166,62 @@ final class SettingsController
         return new WP_REST_Response([
             'success' => true,
             'post_type' => $postType,
+        ]);
+    }
+
+    public static function syncStartEndpoint(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $postType = $request->get_param('post_type');
+
+        if (!$postType) {
+            return new WP_Error('missing_post_type', 'Post type is required', ['status' => 400]);
+        }
+
+        global $wpdb;
+
+        $factory = new DriverFactory($wpdb);
+        $tableManager = new ShadowTableManager($wpdb, $factory);
+        $schema = new SchemaDefinition($postType);
+        $tableManager->createTable($schema);
+
+        $state = \ShadowORM\Core\Application\Service\BatchMigrationService::startMigration($postType);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'state' => $state,
+        ]);
+    }
+
+    public static function syncBatchEndpoint(WP_REST_Request $request): WP_REST_Response|WP_Error
+    {
+        $postType = $request->get_param('post_type');
+
+        if (!$postType) {
+            return new WP_Error('missing_post_type', 'Post type is required', ['status' => 400]);
+        }
+
+        $state = \ShadowORM\Core\Application\Service\BatchMigrationService::processBatch($postType);
+
+        if (isset($state['error'])) {
+            return new WP_Error('batch_error', $state['error'], ['status' => 400]);
+        }
+
+        return new WP_REST_Response([
+            'success' => true,
+            'state' => $state,
+        ]);
+    }
+
+    public static function syncProgressEndpoint(WP_REST_Request $request): WP_REST_Response
+    {
+        $postType = $request->get_param('post_type');
+
+        $progress = $postType
+            ? \ShadowORM\Core\Application\Service\BatchMigrationService::getProgress($postType)
+            : null;
+
+        return new WP_REST_Response([
+            'progress' => $progress,
         ]);
     }
 

@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-01-15
+
+### Added
+
+- **Batch Migration**: Chunked processing for large sites (100 posts/batch)
+  - New REST API endpoints: `sync/start`, `sync/batch`, `sync/progress`
+  - Real-time progress bar in admin panel
+  - No more 504 timeout errors on large installations
+- **Tabbed Admin Panel**: New UI with Dashboard, Post Types, Settings tabs
+  - Extensible via `shadow_orm_admin_tabs` filter
+  - Prepared for Pro version extensions
+
+### Changed
+
+- Migration now uses asynchronous batch processing instead of synchronous
+- WP tested up to: 6.9
+
+### Fixed
+
+- Progress tracking during synchronization
+
 ## [1.1.0] - 2026-01-15
 
 ### Changed
