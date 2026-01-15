@@ -87,6 +87,9 @@ final class ShadowORM
         add_action('deleted_post', [WriteInterceptor::class, 'onDeletePost'], 10, 2);
         add_filter('posts_clauses', [QueryInterceptor::class, 'intercept'], 10, 2);
         add_filter('the_posts', [PostQueryPreloader::class, 'preload'], 10, 2);
+        
+        // Register async write hooks
+        Core\Application\Service\AsyncWriteService::register();
     }
 
     private function registerCli(): void

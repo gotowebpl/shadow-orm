@@ -9,6 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.2.3] - 2026-01-15
 
+### Added
+
+- **Async Write** - eliminate "double write" performance penalty
+  - Use Action Scheduler (WooCommerce standard) for background sync
+  - Fallback to shutdown hook when Action Scheduler not available
+  - Debounce: prevent multiple syncs per post per request
+- **Integrity Check** - detect wp_postmeta vs shadow table mismatches
+  - Random sample verification (100 posts by default)
+  - REST API endpoints: `/integrity/check`, `/integrity/status`
+  - Repair functionality for mismatched data
+- **Admin Panel Support** - work in wp-admin, not just frontend
+  - Enable QueryInterceptor and PostQueryPreloader in admin
+  - Skip only on single post edit screens (need fresh data there)
+  - Accelerate WooCommerce order/product list filtering
+
 ### Performance
 
 - **ReadInterceptor optimization** - eliminate 10% overhead on single meta reads

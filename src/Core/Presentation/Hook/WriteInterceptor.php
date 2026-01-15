@@ -9,6 +9,7 @@ if (!defined('ABSPATH')) {
 }
 
 use ShadowORM\Core\Application\Cache\RuntimeCache;
+use ShadowORM\Core\Application\Service\AsyncWriteService;
 use ShadowORM\Core\Application\Service\SyncService;
 use ShadowORM\Core\Domain\ValueObject\SchemaDefinition;
 use ShadowORM\Core\Domain\ValueObject\SupportedTypes;
@@ -25,6 +26,9 @@ final class WriteInterceptor
     private static ?WpPostMetaReader $metaReader = null;
     private static array $repositories = [];
     private static array $syncServices = [];
+    
+    /** @var array<int, bool> Debounce sync - prevent multiple syncs per request */
+    private static array $scheduledSync = [];
 
     public static function onSavePost(int $postId, WP_Post $post, bool $update): void
     {
@@ -40,7 +44,7 @@ final class WriteInterceptor
             return;
         }
 
-        self::syncPost($postId, $post->post_type);
+        self::scheduleSync($postId, $post->post_type);
     }
 
     public static function onDeletePost(int $postId, WP_Post $post): void
@@ -49,7 +53,7 @@ final class WriteInterceptor
             return;
         }
 
-        self::deletePost($postId, $post->post_type);
+        self::scheduleDelete($postId, $post->post_type);
     }
 
     public static function onMetaChange(int $metaId, int $objectId, string $metaKey, mixed $metaValue): void
@@ -70,10 +74,37 @@ final class WriteInterceptor
             return;
         }
 
-        self::syncPost($objectId, $postType);
+        self::scheduleSync($objectId, $postType);
     }
 
-    private static function syncPost(int $postId, string $postType): void
+    private static function scheduleSync(int $postId, string $postType): void
+    {
+        // Debounce: only schedule once per post per request
+        if (isset(self::$scheduledSync[$postId])) {
+            return;
+        }
+        self::$scheduledSync[$postId] = true;
+
+        $tableManager = self::getTableManager();
+
+        if (!$tableManager->tableExists($postType)) {
+            return;
+        }
+
+        // Use async write if enabled
+        if (AsyncWriteService::isEnabled()) {
+            AsyncWriteService::scheduleSync($postId, $postType);
+        } else {
+            // Synchronous fallback
+            self::getSyncService($postType)->syncPost($postId);
+        }
+        
+        // Invalidate runtime cache
+        $cache = new RuntimeCache();
+        $cache->delete($postId);
+    }
+
+    private static function scheduleDelete(int $postId, string $postType): void
     {
         $tableManager = self::getTableManager();
 
@@ -81,18 +112,14 @@ final class WriteInterceptor
             return;
         }
 
-        self::getSyncService($postType)->syncPost($postId);
-    }
-
-    private static function deletePost(int $postId, string $postType): void
-    {
-        $tableManager = self::getTableManager();
-
-        if (!$tableManager->tableExists($postType)) {
-            return;
+        if (AsyncWriteService::isEnabled()) {
+            AsyncWriteService::scheduleDelete($postId, $postType);
+        } else {
+            self::getSyncService($postType)->deletePost($postId);
         }
-
-        self::getSyncService($postType)->deletePost($postId);
+        
+        $cache = new RuntimeCache();
+        $cache->delete($postId);
     }
 
     private static function getFactory(): DriverFactory

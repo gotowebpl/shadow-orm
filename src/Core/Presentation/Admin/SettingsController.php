@@ -79,6 +79,24 @@ final class SettingsController
             'callback' => [self::class, 'rollbackEndpoint'],
             'permission_callback' => [self::class, 'checkPermission'],
         ]);
+
+        register_rest_route('shadow-orm/v1', '/integrity/check', [
+            'methods' => 'POST',
+            'callback' => [self::class, 'integrityCheckEndpoint'],
+            'permission_callback' => [self::class, 'checkPermission'],
+        ]);
+
+        register_rest_route('shadow-orm/v1', '/integrity/status', [
+            'methods' => 'GET',
+            'callback' => [self::class, 'integrityStatusEndpoint'],
+            'permission_callback' => [self::class, 'checkPermission'],
+        ]);
+
+        register_rest_route('shadow-orm/v1', '/async', [
+            'methods' => 'POST',
+            'callback' => [self::class, 'asyncSettingsEndpoint'],
+            'permission_callback' => [self::class, 'checkPermission'],
+        ]);
     }
 
     public static function checkPermission(): bool
@@ -280,5 +298,39 @@ final class SettingsController
         $excluded = ['attachment'];
 
         return array_values(array_diff($types, $excluded));
+    }
+
+    public static function integrityCheckEndpoint(WP_REST_Request $request): WP_REST_Response
+    {
+        $postType = sanitize_key($request->get_param('post_type') ?? '');
+
+        if ($postType) {
+            $result = \ShadowORM\Core\Application\Service\IntegrityCheckService::check($postType);
+        } else {
+            $result = \ShadowORM\Core\Application\Service\IntegrityCheckService::checkAll();
+        }
+
+        return new WP_REST_Response($result);
+    }
+
+    public static function integrityStatusEndpoint(): WP_REST_Response
+    {
+        return new WP_REST_Response([
+            'last_check' => \ShadowORM\Core\Application\Service\IntegrityCheckService::getLastCheck(),
+            'has_issues' => \ShadowORM\Core\Application\Service\IntegrityCheckService::hasIssues(),
+            'issues_count' => \ShadowORM\Core\Application\Service\IntegrityCheckService::getIssuesCount(),
+        ]);
+    }
+
+    public static function asyncSettingsEndpoint(WP_REST_Request $request): WP_REST_Response
+    {
+        $enabled = (bool) $request->get_param('enabled');
+        update_option('shadow_orm_async_write', $enabled);
+
+        return new WP_REST_Response([
+            'success' => true,
+            'async_enabled' => $enabled,
+            'action_scheduler' => \ShadowORM\Core\Application\Service\AsyncWriteService::hasActionScheduler(),
+        ]);
     }
 }
