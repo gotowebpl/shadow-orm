@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.5] - 2026-01-24
+
+### Fixed
+
+- **Critical Fix**: Resolve Fatal Error `Call to undefined function wp_kses()` in `db.php` drop-in on WordPress 6.1+ by loading `class-wpdb.php` instead of deprecated `wp-db.php`
+
 ## [1.2.4] - 2026-01-24
 
 ### Fixed

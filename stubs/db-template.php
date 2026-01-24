@@ -18,7 +18,11 @@ if (!defined('SHADOW_ORM_DB_LOADED')) {
 }
 
 // Load the original wpdb
-require_once ABSPATH . WPINC . '/wp-db.php';
+if (file_exists(ABSPATH . WPINC . '/class-wpdb.php')) {
+    require_once ABSPATH . WPINC . '/class-wpdb.php';
+} else {
+    require_once ABSPATH . WPINC . '/wp-db.php';
+}
 
 // Initialize wpdb
 if (!isset($GLOBALS['wpdb'])) {
