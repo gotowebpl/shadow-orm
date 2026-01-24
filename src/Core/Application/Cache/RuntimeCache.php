@@ -153,7 +153,11 @@ final class RuntimeCache
     private static function hasPersistentCache(): bool
     {
         if (self::$persistentCacheAvailable === null) {
-            self::$persistentCacheAvailable = wp_using_ext_object_cache();
+            if (!function_exists('wp_using_ext_object_cache')) {
+                self::$persistentCacheAvailable = false;
+            } else {
+                self::$persistentCacheAvailable = (bool) wp_using_ext_object_cache();
+            }
         }
 
         return self::$persistentCacheAvailable;

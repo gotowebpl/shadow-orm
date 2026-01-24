@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.4] - 2026-01-24
+
+### Fixed
+
+- **WordPress.org Plugin Review compliance**
+  - Fix Plugin URI to correct GitHub repository URL
+  - Rename `.stub` files to `-template.php` (not permitted file extensions)
+  - Remove `yahnis-elsts/plugin-update-checker` - external update servers not allowed
+  - Add proper `permission_callback` with argument validation schema to all REST API routes
+  - Use `WP_REST_Server::READABLE` / `WP_REST_Server::CREATABLE` constants
+  - Add `sanitize_callback` and `validate_callback` for all endpoint arguments
+  - Fix unsafe SQL calls - use `$wpdb->prepare()` with placeholders
+  - Add backticks to table names in all SQL queries
+  - Create `.distignore` for `wp dist-archive` command
+- **RuntimeCache** - Fix TypeError when `wp_using_ext_object_cache()` not yet loaded
+
 ## [1.2.3] - 2026-01-15
 
 ### Added

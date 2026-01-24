@@ -22,12 +22,12 @@ final class DropInInstallerTest extends TestCase
         mkdir($this->testPluginDir . '/stubs', 0755, true);
 
         file_put_contents(
-            $this->testPluginDir . '/stubs/db.php.stub',
+            $this->testPluginDir . '/stubs/db-template.php',
             "<?php\n// ShadowORM Database Drop-In\n"
         );
 
         file_put_contents(
-            $this->testPluginDir . '/stubs/mu-loader.php.stub',
+            $this->testPluginDir . '/stubs/mu-loader-template.php',
             "<?php\n// ShadowORM MU Loader\n"
         );
     }

@@ -1,0 +1,19 @@
+# Exclude from distribution archive
+.distignore
+.gitignore
+.git
+.github
+.editorconfig
+.phpcs.xml
+phpcs.xml
+phpunit.xml
+phpunit.xml.dist
+composer.json
+composer.lock
+package.json
+package-lock.json
+node_modules
+tests
+bin
+*.md
+!readme.txt

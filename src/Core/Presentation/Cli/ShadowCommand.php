@@ -197,9 +197,7 @@ final class ShadowCommand
         $table = $schema->getTableName($wpdb->prefix);
 
         $postId = (int) $wpdb->get_var(
-            $wpdb->prepare(
-                "SELECT post_id FROM {$table} LIMIT 1"
-            )
+            "SELECT post_id FROM `{$table}` LIMIT 1"
         );
 
         if (!$postId) {
@@ -210,7 +208,7 @@ final class ShadowCommand
 
         for ($i = 0; $i < $iterations; $i++) {
             $start = microtime(true);
-            $wpdb->get_row("SELECT * FROM {$table} WHERE post_id = {$postId}");
+            $wpdb->get_row($wpdb->prepare("SELECT * FROM `{$table}` WHERE post_id = %d", $postId));
             $times[] = (microtime(true) - $start) * 1000;
         }
 

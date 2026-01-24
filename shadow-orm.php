@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 /**
  * Plugin Name: ShadowORM MySQL Accelerator
- * Plugin URI: https://github.com/shadow-orm/shadow-orm
+ * Plugin URI: https://github.com/gotowebpl/shadow-orm
  * Description: High-performance ORM layer for WordPress/WooCommerce with Shadow Tables
- * Version: 1.2.3
+ * Version: 1.2.4
  * Requires PHP: 8.1
  * Author: gotoweb.pl
  * Author URI: https://gotoweb.pl
@@ -17,7 +17,6 @@ declare(strict_types=1);
 
 namespace ShadowORM;
 
-use ShadowORM\Core\Infrastructure\Updater\GitHubUpdater;
 use ShadowORM\Core\Application\Service\AutoDiscoveryService;
 use ShadowORM\Core\Presentation\Hook\ReadInterceptor;
 use ShadowORM\Core\Presentation\Hook\WriteInterceptor;
@@ -30,7 +29,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const VERSION = '1.2.0';
+const VERSION = '1.2.4';
 const PLUGIN_FILE = __FILE__;
 const PLUGIN_DIR = __DIR__;
 const MIN_MYSQL_VERSION = '5.7.0';
@@ -39,12 +38,9 @@ define('SHADOW_ORM_VERSION', VERSION);
 
 require_once __DIR__ . '/vendor/autoload.php';
 
-// NOTE: Drop-in installation removed - ShadowORM uses WordPress hooks, not custom wpdb
-
 final class ShadowORM
 {
     private static ?self $instance = null;
-    private ?GitHubUpdater $updater = null;
 
     private function __construct()
     {
@@ -53,7 +49,6 @@ final class ShadowORM
         $this->registerRestApi();
         $this->registerAdmin();
         $this->registerCli();
-        $this->registerUpdater();
     }
 
     public static function getInstance(): self
@@ -87,8 +82,7 @@ final class ShadowORM
         add_action('deleted_post', [WriteInterceptor::class, 'onDeletePost'], 10, 2);
         add_filter('posts_clauses', [QueryInterceptor::class, 'intercept'], 10, 2);
         add_filter('the_posts', [PostQueryPreloader::class, 'preload'], 10, 2);
-        
-        // Register async write hooks
+
         Core\Application\Service\AsyncWriteService::register();
     }
 
@@ -113,17 +107,6 @@ final class ShadowORM
         }
 
         AdminPage::register();
-    }
-
-    private function registerUpdater(): void
-    {
-        $this->updater = new GitHubUpdater(PLUGIN_FILE);
-        $this->updater->register();
-    }
-
-    public function getUpdater(): ?GitHubUpdater
-    {
-        return $this->updater;
     }
 }
 

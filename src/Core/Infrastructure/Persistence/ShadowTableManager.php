@@ -52,8 +52,8 @@ final class ShadowTableManager
         $table = $schema->getTableName($this->wpdb->prefix);
         $lookupTable = $schema->getLookupTableName($this->wpdb->prefix);
 
-        $this->wpdb->query("DROP TABLE IF EXISTS {$lookupTable}");
-        $this->wpdb->query("DROP TABLE IF EXISTS {$table}");
+        $this->wpdb->query("DROP TABLE IF EXISTS `{$lookupTable}`");
+        $this->wpdb->query("DROP TABLE IF EXISTS `{$table}`");
     }
 
     public function tableExists(string $postType): bool
@@ -82,12 +82,12 @@ final class ShadowTableManager
         }
 
         $this->wpdb->query(
-            "ALTER TABLE {$table} ADD COLUMN IF NOT EXISTS {$columnName} VARCHAR(255) 
+            "ALTER TABLE `{$table}` ADD COLUMN IF NOT EXISTS `{$columnName}` VARCHAR(255) 
              GENERATED ALWAYS AS (JSON_UNQUOTE(JSON_EXTRACT(meta_data, '{$jsonPath}'))) STORED"
         );
 
         $this->wpdb->query(
-            "CREATE INDEX IF NOT EXISTS idx_{$columnName} ON {$table} ({$columnName})"
+            "CREATE INDEX IF NOT EXISTS `idx_{$columnName}` ON `{$table}` (`{$columnName}`)"
         );
     }
 
@@ -104,7 +104,7 @@ final class ShadowTableManager
             ];
         }
 
-        $count = (int) $this->wpdb->get_var("SELECT COUNT(*) FROM {$table}");
+        $count = (int) $this->wpdb->get_var("SELECT COUNT(*) FROM `{$table}`");
 
         $size = $this->wpdb->get_var(
             $this->wpdb->prepare(

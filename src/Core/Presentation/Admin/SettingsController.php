@@ -31,77 +31,139 @@ final class SettingsController
 
     public static function registerRoutes(): void
     {
-        register_rest_route('shadow-orm/v1', '/settings', [
+        $namespace = 'shadow-orm/v1';
+
+        register_rest_route($namespace, '/settings', [
             [
-                'methods' => 'GET',
+                'methods' => \WP_REST_Server::READABLE,
                 'callback' => [self::class, 'getSettingsEndpoint'],
-                'permission_callback' => [self::class, 'checkPermission'],
+                'permission_callback' => [self::class, 'checkAdminPermission'],
             ],
             [
-                'methods' => 'POST',
+                'methods' => \WP_REST_Server::CREATABLE,
                 'callback' => [self::class, 'saveSettingsEndpoint'],
-                'permission_callback' => [self::class, 'checkPermission'],
+                'permission_callback' => [self::class, 'checkAdminPermission'],
+                'args' => self::getSettingsArgs(),
             ],
         ]);
 
-        register_rest_route('shadow-orm/v1', '/status', [
-            'methods' => 'GET',
+        register_rest_route($namespace, '/status', [
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => [self::class, 'getStatusEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
         ]);
 
-        register_rest_route('shadow-orm/v1', '/sync', [
-            'methods' => 'POST',
+        register_rest_route($namespace, '/sync', [
+            'methods' => \WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'syncEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
+            'args' => self::getPostTypeArgs(),
         ]);
 
-        register_rest_route('shadow-orm/v1', '/sync/start', [
-            'methods' => 'POST',
+        register_rest_route($namespace, '/sync/start', [
+            'methods' => \WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'syncStartEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
+            'args' => self::getPostTypeArgs(),
         ]);
 
-        register_rest_route('shadow-orm/v1', '/sync/batch', [
-            'methods' => 'POST',
+        register_rest_route($namespace, '/sync/batch', [
+            'methods' => \WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'syncBatchEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
+            'args' => self::getPostTypeArgs(),
         ]);
 
-        register_rest_route('shadow-orm/v1', '/sync/progress', [
-            'methods' => 'GET',
+        register_rest_route($namespace, '/sync/progress', [
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => [self::class, 'syncProgressEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
+            'args' => [
+                'post_type' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_key',
+                ],
+            ],
         ]);
 
-        register_rest_route('shadow-orm/v1', '/rollback', [
-            'methods' => 'POST',
+        register_rest_route($namespace, '/rollback', [
+            'methods' => \WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'rollbackEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
+            'args' => self::getPostTypeArgs(),
         ]);
 
-        register_rest_route('shadow-orm/v1', '/integrity/check', [
-            'methods' => 'POST',
+        register_rest_route($namespace, '/integrity/check', [
+            'methods' => \WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'integrityCheckEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
+            'args' => [
+                'post_type' => [
+                    'type' => 'string',
+                    'required' => false,
+                    'sanitize_callback' => 'sanitize_key',
+                ],
+            ],
         ]);
 
-        register_rest_route('shadow-orm/v1', '/integrity/status', [
-            'methods' => 'GET',
+        register_rest_route($namespace, '/integrity/status', [
+            'methods' => \WP_REST_Server::READABLE,
             'callback' => [self::class, 'integrityStatusEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
         ]);
 
-        register_rest_route('shadow-orm/v1', '/async', [
-            'methods' => 'POST',
+        register_rest_route($namespace, '/async', [
+            'methods' => \WP_REST_Server::CREATABLE,
             'callback' => [self::class, 'asyncSettingsEndpoint'],
-            'permission_callback' => [self::class, 'checkPermission'],
+            'permission_callback' => [self::class, 'checkAdminPermission'],
+            'args' => [
+                'enabled' => [
+                    'type' => 'boolean',
+                    'required' => true,
+                    'sanitize_callback' => 'rest_sanitize_boolean',
+                ],
+            ],
         ]);
     }
 
-    public static function checkPermission(): bool
+    public static function checkAdminPermission(): bool
     {
         return current_user_can('manage_options');
+    }
+
+    private static function getSettingsArgs(): array
+    {
+        return [
+            'enabled' => [
+                'type' => 'boolean',
+                'required' => false,
+                'sanitize_callback' => 'rest_sanitize_boolean',
+            ],
+            'post_types' => [
+                'type' => 'array',
+                'required' => false,
+                'items' => ['type' => 'string'],
+                'sanitize_callback' => static fn(array $types): array => array_map('sanitize_key', $types),
+            ],
+            'driver' => [
+                'type' => 'string',
+                'required' => false,
+                'sanitize_callback' => 'sanitize_key',
+            ],
+        ];
+    }
+
+    private static function getPostTypeArgs(): array
+    {
+        return [
+            'post_type' => [
+                'type' => 'string',
+                'required' => true,
+                'sanitize_callback' => 'sanitize_key',
+                'validate_callback' => static fn(string $value): bool => post_type_exists($value),
+            ],
+        ];
     }
 
     public static function getSettingsEndpoint(): WP_REST_Response
@@ -152,15 +214,16 @@ final class SettingsController
 
         $repository = new ShadowRepository($driver, $schema, $wpdb->prefix);
         $cache = new RuntimeCache();
-        $syncService = new SyncService($repository, $cache);
+        $metaReader = new \ShadowORM\Core\Infrastructure\Persistence\WpPostMetaReader($wpdb);
+        $syncService = new SyncService($repository, $cache, $metaReader);
 
         $migrated = $syncService->migrateAll($postType, 100);
 
         // Clean up orphaned records (exist in shadow but not in posts)
         $tableName = $schema->getTableName($wpdb->prefix);
         $wpdb->query("
-            DELETE s FROM {$tableName} s
-            LEFT JOIN {$wpdb->posts} p ON s.post_id = p.ID
+            DELETE s FROM `{$tableName}` s
+            LEFT JOIN `{$wpdb->posts}` p ON s.post_id = p.ID
             WHERE p.ID IS NULL
         ");
 

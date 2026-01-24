@@ -36,7 +36,7 @@ final class DropInInstaller
     private static function installDbDropIn(): void
     {
         $target = self::getContentDir() . '/' . self::DB_DROP_IN;
-        $stub = self::getPluginDir() . '/stubs/db.php.stub';
+        $stub = self::getPluginDir() . '/stubs/db-template.php';
 
         if (self::dbDropInExists() && !self::isOurDropIn($target)) {
             self::backupExistingDropIn($target);
@@ -50,7 +50,7 @@ final class DropInInstaller
         self::createMuPluginsDir();
         
         $target = self::getMuPluginsDir() . '/' . self::MU_LOADER;
-        $stub = self::getPluginDir() . '/stubs/mu-loader.php.stub';
+        $stub = self::getPluginDir() . '/stubs/mu-loader-template.php';
 
         self::copyFile($stub, $target);
     }
