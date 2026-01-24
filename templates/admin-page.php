@@ -15,7 +15,7 @@ $pageUrl = admin_url('options-general.php?page=shadow-orm');
 ?>
 <div class="wrap shadow-orm-admin">
     <h1>
-        <?php esc_html_e('ShadowORM', 'shadow-orm'); ?>
+        <?php esc_html_e('ShadowORM', 'shadoworm-mysql-accelerator'); ?>
         <?php if (\ShadowORM\Core\Presentation\Admin\AdminPage::isProActive()): ?>
             <span class="shadow-orm-pro-badge">Pro</span>
         <?php endif; ?>
@@ -24,7 +24,7 @@ $pageUrl = admin_url('options-general.php?page=shadow-orm');
     <nav class="nav-tab-wrapper shadow-orm-tabs">
         <?php foreach ($tabs as $tabId => $tab): ?>
             <a href="<?php echo esc_url(add_query_arg('tab', $tabId, $pageUrl)); ?>"
-               class="nav-tab <?php echo $currentTab === $tabId ? 'nav-tab-active' : ''; ?>">
+                class="nav-tab <?php echo $currentTab === $tabId ? 'nav-tab-active' : ''; ?>">
                 <?php if (!empty($tab['icon'])): ?>
                     <span class="dashicons <?php echo esc_attr($tab['icon']); ?>"></span>
                 <?php endif; ?>
@@ -62,4 +62,3 @@ $pageUrl = admin_url('options-general.php?page=shadow-orm');
         <p class="progress-text"></p>
     </div>
 </div>
-

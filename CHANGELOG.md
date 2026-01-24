@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.7] - 2026-01-24
+
+### Fixed
+
+- **Final Compliance Polish**
+  - Fix Text Domain in admin template
+  - Add strict sanitization for `$_POST` superglobal usage even in safe comparisons
+  - Verify all code against WordPress Coding Standards
+
 ## [1.2.6] - 2026-01-24
 
 ### Fixed

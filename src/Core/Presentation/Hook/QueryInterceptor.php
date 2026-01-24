@@ -19,7 +19,7 @@ final class QueryInterceptor
 {
     private static ?DriverFactory $factory = null;
     private static ?ShadowTableManager $tableManager = null;
-    
+
     /** @var array<string, bool> Cache for table existence check */
     private static array $tableExistsCache = [];
 
@@ -30,12 +30,12 @@ final class QueryInterceptor
         }
 
         $postType = self::getPostType($query);
-        
+
         // Fast check: is table available?
         if (!self::hasTable($postType)) {
             return $clauses;
         }
-        
+
         $metaQuery = $query->get('meta_query') ?: [];
 
         if (empty($metaQuery)) {
@@ -61,7 +61,7 @@ final class QueryInterceptor
     private static function shouldIntercept(WP_Query $query): bool
     {
         $postType = self::getPostType($query);
-        
+
         // Check if post type is supported first (fast O(1) check)
         if (!SupportedTypes::isSupported($postType)) {
             return false;
@@ -80,34 +80,34 @@ final class QueryInterceptor
 
         return true;
     }
-    
+
     private static function isEditScreen(): bool
     {
         global $pagenow;
-        
+
         // Skip on post edit screen
         if ($pagenow === 'post.php' || $pagenow === 'post-new.php') {
             return true;
         }
-        
+
         // Skip on quick edit
-        if (defined('DOING_AJAX') && isset($_POST['action']) && $_POST['action'] === 'inline-save') {
+        if (defined('DOING_AJAX') && isset($_POST['action']) && sanitize_text_field(wp_unslash($_POST['action'])) === 'inline-save') {
             return true;
         }
-        
+
         return false;
     }
-    
+
     private static function hasTable(string $postType): bool
     {
         if (isset(self::$tableExistsCache[$postType])) {
             return self::$tableExistsCache[$postType];
         }
-        
+
         $tableManager = self::getTableManager();
         $exists = $tableManager->tableExists($postType);
         self::$tableExistsCache[$postType] = $exists;
-        
+
         return $exists;
     }
 
@@ -131,7 +131,7 @@ final class QueryInterceptor
 
         return self::$factory;
     }
-    
+
     private static function getTableManager(): ShadowTableManager
     {
         if (self::$tableManager === null) {

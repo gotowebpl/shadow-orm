@@ -6,7 +6,7 @@ declare(strict_types=1);
  * Plugin Name: ShadowORM MySQL Accelerator
  * Plugin URI: https://github.com/gotowebpl/shadow-orm
  * Description: High-performance ORM layer for WordPress/WooCommerce with Shadow Tables
- * Version: 1.2.6
+ * Version: 1.2.7
  * Requires PHP: 8.1
  * Author: gotoweb.pl
  * Author URI: https://gotoweb.pl
@@ -29,7 +29,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-const VERSION = '1.2.6';
+const VERSION = '1.2.7';
 const PLUGIN_FILE = __FILE__;
 const PLUGIN_DIR = __DIR__;
 const MIN_MYSQL_VERSION = '5.7.0';
