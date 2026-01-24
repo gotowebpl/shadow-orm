@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.6] - 2026-01-24
+
+### Fixed
+
+- **WordPress.org Review compliance**
+  - Update Text Domain to match plugin slug (`shadoworm-mysql-accelerator`)
+  - Replace hardcoded directory paths with `WP_CONTENT_DIR`, `WPMU_PLUGIN_DIR` and plugin constants
+  - Refactor `DropInInstaller` to strictly use WordPress constants for paths
+
 ## [1.2.5] - 2026-01-24
 
 ### Fixed

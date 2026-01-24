@@ -22,7 +22,7 @@ final class AdminPage
     public static function addMenuPage(): void
     {
         add_options_page(
-            __('ShadowORM Settings', 'shadow-orm'),
+            __('ShadowORM Settings', 'shadoworm-mysql-accelerator'),
             self::getMenuTitle(),
             self::CAPABILITY,
             self::MENU_SLUG,
@@ -47,7 +47,7 @@ final class AdminPage
             return;
         }
 
-        $pluginUrl = plugin_dir_url(dirname(__DIR__, 4) . '/shadow-orm.php');
+        $pluginUrl = plugin_dir_url(\ShadowORM\PLUGIN_FILE);
 
         wp_enqueue_style(
             'shadow-orm-admin',
@@ -69,10 +69,10 @@ final class AdminPage
             'nonce' => wp_create_nonce('wp_rest'),
             'isPro' => self::isProActive(),
             'i18n' => [
-                'syncing' => __('Synchronizacja...', 'shadow-orm'),
-                'syncComplete' => __('Synchronizacja zakończona', 'shadow-orm'),
-                'syncError' => __('Błąd synchronizacji', 'shadow-orm'),
-                'confirm_rollback' => __('Czy na pewno chcesz usunąć tabelę shadow?', 'shadow-orm'),
+                'syncing' => __('Synchronizacja...', 'shadoworm-mysql-accelerator'),
+                'syncComplete' => __('Synchronizacja zakończona', 'shadoworm-mysql-accelerator'),
+                'syncError' => __('Błąd synchronizacji', 'shadoworm-mysql-accelerator'),
+                'confirm_rollback' => __('Czy na pewno chcesz usunąć tabelę shadow?', 'shadoworm-mysql-accelerator'),
             ],
         ]);
 
@@ -90,22 +90,22 @@ final class AdminPage
         $settings = SettingsController::getSettings();
         $status = SettingsController::getStatus();
 
-        include dirname(__DIR__, 4) . '/templates/admin-page.php';
+        include \ShadowORM\PLUGIN_DIR . '/templates/admin-page.php';
     }
 
     public static function getTabs(): array
     {
         $tabs = [
             'dashboard' => [
-                'title' => __('Dashboard', 'shadow-orm'),
+                'title' => __('Dashboard', 'shadoworm-mysql-accelerator'),
                 'icon' => 'dashicons-dashboard',
             ],
             'post-types' => [
-                'title' => __('Post Types', 'shadow-orm'),
+                'title' => __('Post Types', 'shadoworm-mysql-accelerator'),
                 'icon' => 'dashicons-database',
             ],
             'settings' => [
-                'title' => __('Settings', 'shadow-orm'),
+                'title' => __('Settings', 'shadoworm-mysql-accelerator'),
                 'icon' => 'dashicons-admin-settings',
             ],
         ];

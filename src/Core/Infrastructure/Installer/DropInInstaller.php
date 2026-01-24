@@ -48,7 +48,7 @@ final class DropInInstaller
     private static function installMuLoader(): void
     {
         self::createMuPluginsDir();
-        
+
         $target = self::getMuPluginsDir() . '/' . self::MU_LOADER;
         $stub = self::getPluginDir() . '/stubs/mu-loader-template.php';
 
@@ -108,7 +108,7 @@ final class DropInInstaller
     {
         $backup = $path . '.shadow-orm-backup';
         $filesystem = self::getFilesystem();
-        
+
         if (!$filesystem->copy($path, $backup)) {
             throw new RuntimeException(
                 sprintf('Failed to backup existing db.php to %s', esc_html($backup))
@@ -137,7 +137,7 @@ final class DropInInstaller
         }
 
         $filesystem = self::getFilesystem();
-        
+
         if (!$filesystem->mkdir($dir, 0755) && !is_dir($dir)) {
             throw new RuntimeException(
                 sprintf('Failed to create mu-plugins directory: %s', esc_html($dir))
@@ -154,7 +154,7 @@ final class DropInInstaller
         }
 
         $filesystem = self::getFilesystem();
-        
+
         if (!$filesystem->copy($source, $target, true)) {
             throw new RuntimeException(
                 sprintf('Failed to copy %s to %s', esc_html($source), esc_html($target))
@@ -165,7 +165,7 @@ final class DropInInstaller
     private static function deleteFile(string $path): void
     {
         $filesystem = self::getFilesystem();
-        
+
         if (!$filesystem->delete($path)) {
             throw new RuntimeException(
                 sprintf('Failed to delete file: %s', esc_html($path))
@@ -187,23 +187,16 @@ final class DropInInstaller
 
     private static function getContentDir(): string
     {
-        return defined('WP_CONTENT_DIR') ? WP_CONTENT_DIR : ABSPATH . 'wp-content';
+        return WP_CONTENT_DIR;
     }
 
     private static function getMuPluginsDir(): string
     {
-        return defined('WPMU_PLUGIN_DIR') ? WPMU_PLUGIN_DIR : self::getContentDir() . '/mu-plugins';
+        return WPMU_PLUGIN_DIR;
     }
 
     private static function getPluginDir(): string
     {
-        if (function_exists('plugin_dir_path')) {
-            $mainFile = dirname(__DIR__, 4) . '/shadow-orm.php';
-            if (file_exists($mainFile)) {
-                return dirname($mainFile);
-            }
-        }
-
-        return dirname(__DIR__, 4);
+        return \ShadowORM\PLUGIN_DIR;
     }
 }
